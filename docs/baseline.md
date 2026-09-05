@@ -3,7 +3,8 @@
 Wave: `REPLIA.RECONSTRUCTION.BASELINE.0`. Date: 2026-09-05.
 This record covers the foundation before its genesis commit. Git and the final
 delivery report own the resulting commit/tree and publication status; this
-file does not attempt to contain the hash of its own commit.
+file does not attempt to contain the hash of its own commit. The publication
+correction below was recorded after genesis at the owner's explicit request.
 
 ## Environment and creation
 
@@ -12,6 +13,13 @@ GitHub lookup reported that `yailabs/replia` did not exist, including a second
 check before publication preparation. A new directory was created with
 `mkdir`, followed by `git init -b master`. No repository template, fork, clone,
 subtree, copied Git directory or donor source import was used.
+
+During publication the owner corrected the destination to the personal
+profile. After verifying `mothx9/replia` was absent, the existing independent
+repository was transferred to that account. GitHub confirmed public ownership
+by `mothx9`, default branch `master`, and the same genesis commit. The canonical
+remote is now **https://github.com/mothx9/replia**. A subsequent ordinary commit
+updates the package URL and this provenance record; history was not rewritten.
 
 Rust was initially absent from PATH. The official rustup installer installed
 the current stable toolchain with the minimal profile plus rustfmt and Clippy;
