@@ -1,0 +1,507 @@
+{
+  "constants": [
+    [
+      "REPLIA_C_ABI_VERSION",
+      "u32",
+      1
+    ],
+    [
+      "REPLIA_OK",
+      "i32",
+      0
+    ],
+    [
+      "REPLIA_INVALID_ARGUMENT",
+      "i32",
+      1
+    ],
+    [
+      "REPLIA_INVALID_UTF8",
+      "i32",
+      2
+    ],
+    [
+      "REPLIA_INVALID_RANGE",
+      "i32",
+      3
+    ],
+    [
+      "REPLIA_CAPACITY",
+      "i32",
+      4
+    ],
+    [
+      "REPLIA_INVALID_STATE",
+      "i32",
+      5
+    ],
+    [
+      "REPLIA_UNSUITABLE_TERMINAL",
+      "i32",
+      6
+    ],
+    [
+      "REPLIA_IO",
+      "i32",
+      7
+    ],
+    [
+      "REPLIA_BUFFER_TOO_SMALL",
+      "i32",
+      8
+    ],
+    [
+      "REPLIA_ABI_MISMATCH",
+      "i32",
+      9
+    ],
+    [
+      "REPLIA_BUSY",
+      "i32",
+      10
+    ],
+    [
+      "REPLIA_INTERNAL",
+      "i32",
+      11
+    ],
+    [
+      "REPLIA_INVALID_TEXT",
+      "i32",
+      12
+    ],
+    [
+      "REPLIA_HISTORY_DISABLED",
+      "i32",
+      13
+    ],
+    [
+      "REPLIA_INVALID_SEQUENCE",
+      "i32",
+      14
+    ],
+    [
+      "REPLIA_EVENT_NONE",
+      "u32",
+      0
+    ],
+    [
+      "REPLIA_EVENT_SUBMITTED",
+      "u32",
+      1
+    ],
+    [
+      "REPLIA_EVENT_INTERRUPTED",
+      "u32",
+      2
+    ],
+    [
+      "REPLIA_EVENT_END_OF_INPUT",
+      "u32",
+      3
+    ],
+    [
+      "REPLIA_EVENT_COMPLETION_REQUESTED",
+      "u32",
+      4
+    ],
+    [
+      "REPLIA_EVENT_EDIT_REJECTED",
+      "u32",
+      5
+    ],
+    [
+      "REPLIA_ROLE_DEFAULT",
+      "u32",
+      0
+    ],
+    [
+      "REPLIA_ROLE_STRONG",
+      "u32",
+      1
+    ],
+    [
+      "REPLIA_ROLE_ACCENT",
+      "u32",
+      2
+    ],
+    [
+      "REPLIA_ROLE_DIM",
+      "u32",
+      3
+    ],
+    [
+      "REPLIA_ROLE_SUCCESS",
+      "u32",
+      4
+    ],
+    [
+      "REPLIA_ROLE_WARNING",
+      "u32",
+      5
+    ],
+    [
+      "REPLIA_ROLE_ERROR",
+      "u32",
+      6
+    ]
+  ],
+  "records": [
+    {
+      "name": "RepliaConfig",
+      "c_name": "replia_config",
+      "doc": "Creation limits. Zero-initialize, then set struct_size, abi_version and desired limits.",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "max_input_bytes",
+          "u64"
+        ],
+        [
+          "history_entries",
+          "u64"
+        ],
+        [
+          "reserved",
+          "[u64; 2]"
+        ]
+      ]
+    },
+    {
+      "name": "RepliaEvent",
+      "c_name": "replia_event",
+      "doc": "Poll output. Before EVERY poll/interrupt: zero-initialize and set struct_size and abi_version.",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "kind",
+          "u32"
+        ],
+        [
+          "status",
+          "i32"
+        ],
+        [
+          "text_bytes",
+          "u64"
+        ],
+        [
+          "cursor_bytes",
+          "u64"
+        ],
+        [
+          "reserved",
+          "[u64; 2]"
+        ]
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "replia_abi_version",
+      "doc": "Write the exact runtime ABI identity.",
+      "params": [
+        [
+          "version",
+          "*mut u32"
+        ]
+      ]
+    },
+    {
+      "name": "replia_create",
+      "doc": "Create one owned opaque handle. *out must initially be NULL. Failures leave it unchanged.",
+      "params": [
+        [
+          "config",
+          "*const RepliaConfig"
+        ],
+        [
+          "out",
+          "*mut *mut Handle"
+        ]
+      ]
+    },
+    {
+      "name": "replia_destroy",
+      "doc": "Close and release *handle, then set it to NULL, including on cleanup error. NULL is invalid.",
+      "params": [
+        [
+          "handle",
+          "*mut *mut Handle"
+        ]
+      ]
+    },
+    {
+      "name": "replia_prompt",
+      "doc": "Configure a closed interaction atomically. All three fields are literal UTF-8; continuation is explicit.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "label",
+          "*const u8"
+        ],
+        [
+          "label_len",
+          "usize"
+        ],
+        [
+          "suffix",
+          "*const u8"
+        ],
+        [
+          "suffix_len",
+          "usize"
+        ],
+        [
+          "continuation",
+          "*const u8"
+        ],
+        [
+          "continuation_len",
+          "usize"
+        ]
+      ]
+    },
+    {
+      "name": "replia_open",
+      "doc": "Borrow caller FDs for this call; own duplicates until terminal outcome/close/destroy. Requires closed state.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "input_fd",
+          "i32"
+        ],
+        [
+          "output_fd",
+          "i32"
+        ]
+      ]
+    },
+    {
+      "name": "replia_close",
+      "doc": "Restore/release terminal duplicates; retain editor/history. Idempotent, including before open.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ]
+      ]
+    },
+    {
+      "name": "replia_poll",
+      "doc": "Poll one byte/tick, at most 100 ms. Return OK with event NONE for no event. Validate event before consuming input.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "timeout_ms",
+          "u32"
+        ],
+        [
+          "event",
+          "*mut RepliaEvent"
+        ]
+      ]
+    },
+    {
+      "name": "replia_interrupt",
+      "doc": "Deliver a host-observed interrupt and close. Ordinary control flow only; not signal-handler safe.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "event",
+          "*mut RepliaEvent"
+        ]
+      ]
+    },
+    {
+      "name": "replia_draft_copy",
+      "doc": "Copy exact UTF-8, no NUL terminator. NULL/0 queries successfully. Too-small writes only required/cursor.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "buffer",
+          "*mut u8"
+        ],
+        [
+          "capacity",
+          "usize"
+        ],
+        [
+          "required",
+          "*mut usize"
+        ],
+        [
+          "cursor",
+          "*mut usize"
+        ]
+      ]
+    },
+    {
+      "name": "replia_submitted_copy",
+      "doc": "Copy the last submission until next successful open. No submission: INVALID_STATE. Same copy rules as draft_copy.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "buffer",
+          "*mut u8"
+        ],
+        [
+          "capacity",
+          "usize"
+        ],
+        [
+          "required",
+          "*mut usize"
+        ]
+      ]
+    },
+    {
+      "name": "replia_set_draft",
+      "doc": "Replace the entire closed draft atomically; cursor moves to end. History and last submission are retained.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "text",
+          "*const u8"
+        ],
+        [
+          "length",
+          "usize"
+        ]
+      ]
+    },
+    {
+      "name": "replia_clear",
+      "doc": "Clear closed draft/navigation, retaining admitted history and last submission.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ]
+      ]
+    },
+    {
+      "name": "replia_history_add",
+      "doc": "Explicit host admission while closed. Oldest entry evicted at configured capacity; no deduplication.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "text",
+          "*const u8"
+        ],
+        [
+          "length",
+          "usize"
+        ]
+      ]
+    },
+    {
+      "name": "replia_complete",
+      "doc": "Replace a grapheme-aligned byte range while open. Validation failure leaves draft/display unchanged.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "start",
+          "usize"
+        ],
+        [
+          "end",
+          "usize"
+        ],
+        [
+          "text",
+          "*const u8"
+        ],
+        [
+          "length",
+          "usize"
+        ]
+      ]
+    },
+    {
+      "name": "replia_external_output",
+      "doc": "Write safe UTF-8 with one generic role, then restore draft/cursor. Reject arbitrary control/ANSI data.",
+      "params": [
+        [
+          "handle",
+          "*mut Handle"
+        ],
+        [
+          "role",
+          "u32"
+        ],
+        [
+          "text",
+          "*const u8"
+        ],
+        [
+          "length",
+          "usize"
+        ]
+      ]
+    },
+    {
+      "name": "replia_status_text",
+      "doc": "Copy a static diagnostic by status using caller storage; no NUL terminator or library text allocation crosses C.",
+      "params": [
+        [
+          "status",
+          "i32"
+        ],
+        [
+          "buffer",
+          "*mut u8"
+        ],
+        [
+          "capacity",
+          "usize"
+        ],
+        [
+          "required",
+          "*mut usize"
+        ]
+      ]
+    }
+  ]
+}

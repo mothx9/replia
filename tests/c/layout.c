@@ -1,0 +1,50 @@
+#include "replia.h"
+#include <stdio.h>
+int main(void) {
+    printf("REPLIA_C_ABI_VERSION=%lld\n", (long long)REPLIA_C_ABI_VERSION);
+    printf("REPLIA_OK=%lld\n", (long long)REPLIA_OK);
+    printf("REPLIA_INVALID_ARGUMENT=%lld\n", (long long)REPLIA_INVALID_ARGUMENT);
+    printf("REPLIA_INVALID_UTF8=%lld\n", (long long)REPLIA_INVALID_UTF8);
+    printf("REPLIA_INVALID_RANGE=%lld\n", (long long)REPLIA_INVALID_RANGE);
+    printf("REPLIA_CAPACITY=%lld\n", (long long)REPLIA_CAPACITY);
+    printf("REPLIA_INVALID_STATE=%lld\n", (long long)REPLIA_INVALID_STATE);
+    printf("REPLIA_UNSUITABLE_TERMINAL=%lld\n", (long long)REPLIA_UNSUITABLE_TERMINAL);
+    printf("REPLIA_IO=%lld\n", (long long)REPLIA_IO);
+    printf("REPLIA_BUFFER_TOO_SMALL=%lld\n", (long long)REPLIA_BUFFER_TOO_SMALL);
+    printf("REPLIA_ABI_MISMATCH=%lld\n", (long long)REPLIA_ABI_MISMATCH);
+    printf("REPLIA_BUSY=%lld\n", (long long)REPLIA_BUSY);
+    printf("REPLIA_INTERNAL=%lld\n", (long long)REPLIA_INTERNAL);
+    printf("REPLIA_INVALID_TEXT=%lld\n", (long long)REPLIA_INVALID_TEXT);
+    printf("REPLIA_HISTORY_DISABLED=%lld\n", (long long)REPLIA_HISTORY_DISABLED);
+    printf("REPLIA_INVALID_SEQUENCE=%lld\n", (long long)REPLIA_INVALID_SEQUENCE);
+    printf("REPLIA_EVENT_NONE=%lld\n", (long long)REPLIA_EVENT_NONE);
+    printf("REPLIA_EVENT_SUBMITTED=%lld\n", (long long)REPLIA_EVENT_SUBMITTED);
+    printf("REPLIA_EVENT_INTERRUPTED=%lld\n", (long long)REPLIA_EVENT_INTERRUPTED);
+    printf("REPLIA_EVENT_END_OF_INPUT=%lld\n", (long long)REPLIA_EVENT_END_OF_INPUT);
+    printf("REPLIA_EVENT_COMPLETION_REQUESTED=%lld\n", (long long)REPLIA_EVENT_COMPLETION_REQUESTED);
+    printf("REPLIA_EVENT_EDIT_REJECTED=%lld\n", (long long)REPLIA_EVENT_EDIT_REJECTED);
+    printf("REPLIA_ROLE_DEFAULT=%lld\n", (long long)REPLIA_ROLE_DEFAULT);
+    printf("REPLIA_ROLE_STRONG=%lld\n", (long long)REPLIA_ROLE_STRONG);
+    printf("REPLIA_ROLE_ACCENT=%lld\n", (long long)REPLIA_ROLE_ACCENT);
+    printf("REPLIA_ROLE_DIM=%lld\n", (long long)REPLIA_ROLE_DIM);
+    printf("REPLIA_ROLE_SUCCESS=%lld\n", (long long)REPLIA_ROLE_SUCCESS);
+    printf("REPLIA_ROLE_WARNING=%lld\n", (long long)REPLIA_ROLE_WARNING);
+    printf("REPLIA_ROLE_ERROR=%lld\n", (long long)REPLIA_ROLE_ERROR);
+    printf("replia_config.size=%zu\n", sizeof(replia_config));
+    printf("replia_config.align=%zu\n", _Alignof(replia_config));
+    printf("replia_config.struct_size=%zu\n", offsetof(replia_config, struct_size));
+    printf("replia_config.abi_version=%zu\n", offsetof(replia_config, abi_version));
+    printf("replia_config.max_input_bytes=%zu\n", offsetof(replia_config, max_input_bytes));
+    printf("replia_config.history_entries=%zu\n", offsetof(replia_config, history_entries));
+    printf("replia_config.reserved=%zu\n", offsetof(replia_config, reserved));
+    printf("replia_event.size=%zu\n", sizeof(replia_event));
+    printf("replia_event.align=%zu\n", _Alignof(replia_event));
+    printf("replia_event.struct_size=%zu\n", offsetof(replia_event, struct_size));
+    printf("replia_event.abi_version=%zu\n", offsetof(replia_event, abi_version));
+    printf("replia_event.kind=%zu\n", offsetof(replia_event, kind));
+    printf("replia_event.status=%zu\n", offsetof(replia_event, status));
+    printf("replia_event.text_bytes=%zu\n", offsetof(replia_event, text_bytes));
+    printf("replia_event.cursor_bytes=%zu\n", offsetof(replia_event, cursor_bytes));
+    printf("replia_event.reserved=%zu\n", offsetof(replia_event, reserved));
+    return 0;
+}

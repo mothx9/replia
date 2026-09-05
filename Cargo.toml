@@ -24,3 +24,16 @@ unicode-width = { version = "0.2.2", default-features = false }
 [dev-dependencies]
 rustix = { version = "1.1.4", features = ["pty"] }
 vt100 = "0.16.2"
+
+[workspace]
+members = ["crates/replia-c"]
+default-members = [".", "crates/replia-c"]
+resolver = "3"
+
+[profile.release]
+panic = "unwind"
+debug = 1
+
+[[example]]
+name = "terminal-state"
+path = "tests/support/terminal_state.rs"

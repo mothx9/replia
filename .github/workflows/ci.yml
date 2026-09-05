@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  checks:
+  rust:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
@@ -33,12 +33,48 @@ jobs:
           CARGO_NET_OFFLINE: "false"
         run: cargo fetch --locked
       - run: cargo fmt --check
-      - run: cargo check --all-targets
-      - run: cargo test --all-targets
-      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo check --workspace --all-targets
+      - name: Rust core and public boundary
+        run: cargo test --workspace --lib --test core --test foundation
+      - name: Rust PTY behavior
+        run: cargo test -p replia --test pty
+      - name: Rust release regressions
+        run: cargo test --workspace --release
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --doc
       - name: Check tracked files stayed unchanged
         run: |
           git diff --check
           git diff --exit-code
           test -z "$(git ls-files --others --exclude-standard)"
+
+  native:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
+      RUSTDOCFLAGS: -D warnings
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: stable
+          components: rustfmt
+      - name: Install native qualification tools
+        run: sudo apt-get update && sudo apt-get install -y valgrind pkg-config g++
+      - name: Release C ABI, staging, layout and C11/C++17 headers
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase prepare
+      - name: External static C consumer, misuse, descriptors and PTY behavior
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase static
+      - name: External shared C consumer, misuse, descriptors and PTY behavior
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase shared
+      - name: Memory and leak qualification with Valgrind
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase memory
+      - name: Symbols, staged loader resolution and installed metadata
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase audit
+      - name: Check repository stayed unchanged
+        run: |
+          git diff --check
+          test -z "$(git status --porcelain)"

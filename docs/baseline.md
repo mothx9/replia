@@ -202,3 +202,54 @@ R1 does not qualify other operating systems, every emulator's Unicode/reflow
 behavior, unrestricted concurrent writers, termination bypassing cleanup,
 unframed paste, a stable API/ABI or production maturity. No consumer was cut over,
 no release published and no R2 ABI work begun.
+
+
+## R2 reconciliation and local qualification
+
+R2 began on clean `master`, HEAD
+`fb1600ba75cff2816eccc39b17a47e8913bc10cb`, tree
+`b5ecbdfd6d6e473154a4b14710df2ff901044968`, equal to `origin/master` at
+`mothx9/replia`. No alternate branch/worktree or history rewrite was used.
+The R1 presentation oracle remains `3a6520945a5c103365178f48104f0ccdb5154624`.
+The donor was observed at `5b95ee82eee394581521d106c7b1ec479d472448` initially
+and `3f4a1c182d35e5a0e163adb81008ae7a366efcc6` during final reconciliation.
+Its console, palette, stream file and PTY script have no diff against the oracle.
+The external worktree stayed clean; its intervening work was preserved.
+No external consumer was modified or linked.
+
+Local C qualification used Linux aarch64, stable Rust 1.98.1, GCC/G++
+13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1), pkg-config 1.8.1 and Valgrind 3.22.0.
+CI independently qualifies its current stable Ubuntu toolchain. The only new
+non-workspace dependency is libc 0.2.189 in the binding; the lockfile already
+contained that version transitively. It offers MIT/Apache-2.0 licensing and
+supplies F_GETFD validation absent from std. No dependency type enters the ABI.
+
+Executed C and Rust probes agreed on ABI version 1, all status/event/style tags
+and these layouts on the local target:
+
+| Record | C size/alignment | Rust size/alignment | Offsets in declaration order (both) |
+| --- | --- | --- | --- |
+| config | 40 / 8 | 40 / 8 | 0, 4, 8, 16, 24 |
+| event | 48 / 8 | 48 / 8 | 0, 4, 8, 12, 16, 24, 32 |
+
+Both installed linkage paths executed under real PTYs. The repeated lifecycle
+fixture ran 128 owners and 384 open/close cycles per invocation: FD count 8 → 8,
+caller descriptors valid, captured termios equal after all 384 cycles. Each
+submission was UTF-8 `a` LF `界` (hex `610ae7958c`), event 1, cursor byte 1.
+Caller-buffer tests queried/copied the exact nine-byte `é界` LF `é` input,
+including combining text, with no partial writes or implicit NUL terminator.
+The complete C scenarios and visual assertions are in [presentation](presentation.md).
+
+Valgrind reported zero invalid accesses and zero live allocations at exit for
+both repeated lifecycle binaries and the shared C demo's PTY paths. Normal
+misuse/failure paths have no definite/indirect leaks. The separately unit-tested
+panic-payload destructor exception is documented in [C API](c-api.md), not hidden
+behind a claim of universally allocation-free panic recovery.
+
+`python3 tools/qualify.py` is the full executable authority. It retains exact
+commands, layouts, status observations, PTY byte/state JSON and memory reports in
+a fresh temporary evidence directory. Compilation and consumer execution deny
+repository reads through Landlock. The staged header/libs/pkg-config are sufficient;
+shared loader resolution and the exact dynamic symbol set are checked. Current
+HEAD/TREE and CI run links belong in the final wave report, not a self-referential
+commit field in this document.

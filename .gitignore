@@ -1,1 +1,4 @@
 /target/
+
+# Python qualification tools
+__pycache__/

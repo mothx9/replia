@@ -17,11 +17,11 @@
 //! A host owns the loop, including what to do after submission or interruption:
 //!
 //! ```no_run
-//! use replia::{Editor, Event, Prompt, Terminal};
+//! use replia::{Editor, Event, Prompt, Interaction};
 //! use std::time::Duration;
-//! let mut draft = Editor::new(65_536, 100);
-//! let mut terminal = Terminal::open(
-//!     &std::io::stdin(), &std::io::stdout(), &mut draft, Prompt::new("demo")?,
+//! let mut terminal = Interaction::new(Editor::new(65_536, 100));
+//! terminal.open(
+//!     &std::io::stdin(), &std::io::stdout(), Prompt::new("demo")?,
 //! )?;
 //! loop {
 //!     match terminal.poll(Duration::from_millis(100))? {
@@ -43,4 +43,4 @@ mod terminal;
 pub use core::{EditError, Editor};
 pub use presentation::{Prompt, Role, Theme};
 #[cfg(target_os = "linux")]
-pub use terminal::{Error, Event, Terminal};
+pub use terminal::{Error, Event, Interaction};

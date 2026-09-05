@@ -1,9 +1,9 @@
 # Architecture and implementation boundary
 
-Status: `REPLIA.TERMINAL.EDITOR.KERNEL.0` (R1). This is an independent, early
+Status: `REPLIA.INTERACTION.API.ABI.0` (R2). This is an independent, early
 terminal interaction library with a working Linux editor. The public Rust
-surface is experimental. No C ABI, consumer adapter or application framework
-is implemented.
+surface is experimental. A separate C binding exposes pre-release ABI 1 through
+this public Rust surface. No consumer adapter or application framework exists.
 
 ## Ownership and structure
 
@@ -112,7 +112,7 @@ unframed multi-command paste is not promised.
 
 ## Terminal and signal ownership
 
-`Terminal::open` validates TTY input and output and requires the same terminal
+`Interaction::open` validates TTY input and output and requires the same terminal
 before changing state. It duplicates the FDs, captures full termios and window
 dimensions, enters raw mode with ISIG disabled, enables bracketed paste and draws.
 No input queue is flushed. One active interaction per process is admitted;
@@ -141,8 +141,14 @@ or externally changing terminal modes during an interaction are unsupported.
 
 ## Host interaction contract
 
-`Terminal` borrows an `Editor`; its immutable `editor()` view exposes current
-text and byte cursor. Terminal closure does not clear the editor or admit history.
+`Interaction` owns an `Editor` and an independently owned optional terminal
+resource. The resource borrows editor state only for each operation, never for
+its stored lifetime. This replaces R1 `Terminal<'a>` borrowing an external editor:
+an opaque owner can now be moved, closed and reopened without self-references,
+raw editor pointers or fabricated lifetimes. `editor()` exposes current text
+and byte cursor; `editor_mut()` permits direct host edits only while closed.
+Active edits go through validated completion/output operations so display state
+cannot become stale. Terminal closure does not clear the editor or admit history.
 The host can retain rejected/interrupted/submitted input and choose its next step.
 
 - `Event::Submitted(String)`: Enter; terminal restored.
@@ -151,6 +157,9 @@ The host can retain rejected/interrupted/submitted input and choose its next ste
   Ctrl-D with nonempty text deletes the next grapheme (no-op at end).
 - `Event::CompletionRequested`: Tab; active draft remains available.
 - `Event::Rejected(EditError)`: recoverable input/capacity failure; editing continues.
+- `Error::State`: operation unavailable in the current lifecycle.
+- `Error::Busy`: another interaction owns the terminal lease.
+- `Error::UnsuitableTerminal`: non-TTY, terminal mismatch or unsupported dimensions.
 - `Error::Edit`: invalid host edit/output text; unchanged draft, interaction active.
 - `Error::Io`: terminal failure; restoration attempted, interaction unavailable
   after successful restoration. A failed restoration is reported.
@@ -187,11 +196,19 @@ the locked transitive graph also offers MIT. No third-party type leaks into the
 public API, no application source dependency exists, and crate unsafe code stays
 forbidden. Exact versions and evidence are in [baseline](baseline.md).
 
-The next bounded wave is `REPLIA.INTERACTION.API.ABI.0` (R2): review and consolidate
-the implemented Rust interaction contract; specify an explicit C ABI with opaque
-ownership, allocation/free, event/error/length rules and completion/output
-lifetimes; implement and test a standalone C caller, headers and linkage if that
-wave authorizes them. Qualify cross-language failure and cleanup before admitting
-consumer adapters. R2 does not imply a consumer cutover, removal of old code,
-application semantics, a dashboard, a release or any portable-backend promise.
-No R2 implementation is included here.
+R2 adds only `libc` to the binding package for validating ordinary integer FDs
+with F_GETFD before constructing a borrowed descriptor. std has no fallible
+raw-FD validation operation. Its MIT-compatible license is recorded in the lock
+graph; no libc type crosses either public boundary. `replia-c` depends on the
+public `replia` crate and owns pointer validation, panic containment and ABI
+translation; it cannot access private editor, decoder or frame state. Its
+unsafe operations are restricted to the C boundary; `replia` retains
+`unsafe_code = "forbid"`. See [C API](c-api.md) for mechanical ownership,
+installation, threading, numeric contracts and executable qualification.
+
+Native breaking changes are limited to replacing the lifetime-bound Terminal
+with Interaction and adding typed lifecycle/busy/unsuitable-terminal errors.
+They solve movable opaque ownership and machine-readable C error mapping.
+The host loop, editor policies and single renderer remain unchanged. R2 does
+not cut over any consumer. A later, separately authorized integration must pin
+an exact qualified revision and retain product semantics in its own adapter.

@@ -90,3 +90,42 @@ This is evidence for the specified line-oriented visual/interaction grammar and
 its corrected structural cases. It is not pixel/font equivalence, a full product
 runtime transcript comparison or certification of every emulator's emoji widths,
 ambiguous-width settings, saved scrollback reflow or terminal multiplexers.
+
+## R2: the same renderer through C
+
+The observed read-only donor at R2 start was
+`5b95ee82eee394581521d106c7b1ec479d472448`, branch `models2`, tree
+`7f1065cda89b12a54d81591f801f492da70594ca`. The console, palette, stream output
+and PTY script are unchanged from the R1 oracle revision above. R2 retains that
+record instead of following unrelated runtime work.
+
+`tools/c_pty.py` drives the **external C process** built from an installed header
+and release library. It does not call Rust editor functions from the harness.
+The dev-only `terminal-state` executable uses the independent vt100 parser to
+report cells, foreground, bold weight, default background and cursor. Both
+static/shared processes, plus the shared process under Valgrind, run the same
+scenarios. Initial styled/NO_COLOR/dumb prompt bytes must equal the R1 record
+exactly after the bracketed-paste enable marker. All seven generic style roles
+are checked in actual C output. There is only one Rust renderer beneath both APIs.
+
+| C scenario | Observed state required by assertions (zero-based row,column) |
+| --- | --- |
+| C01 styled / C02 NO_COLOR / TERM=dumb | `demo> `; cursor (0,6); Accent 81 or default; exact prompt bytes |
+| C03 UTF-8 edit | `hé界🌍`, Left, Backspace, `X` → `héX🌍`; byte cursor 4, cells (0,9) |
+| C04 history / C14 reopen | Submit `earlier`; draft `draft`, Left, Up, Down → original draft and byte cursor 4; cells (3,10) |
+| C05 completion | `wor`, Tab → request with `wor`, C chooses `world`; byte cursor 5, cells (0,11) |
+| C06 paste | Bracketed `é` CRLF `界` → one `é` LF `界` input; continuation `... `, cursor (1,6) |
+| C07 resize | 12 to 9 columns while editing `ab界` LF `line 🌍`; four physical rows, cursor (3,0); inserting X gives `ab界` LF `line X🌍` |
+| C08 external output | Dim notice above `demo> ab界`; byte cursor 2 remains at (1,8); X gives `abX界` |
+| C09 interrupt | `hello`, Ctrl-C → event 2, visible `demo> hello^C`, cursor (1,0) |
+| C10 empty Ctrl-D | Event 3, empty draft, cursor (1,0) |
+| C11 nonempty Ctrl-D | `abc`, Ctrl-D at end, Home, Ctrl-D → `bc`, byte cursor 0, cells (0,6); then submit |
+| C12 submit | `hello`, Enter → event 1 and exact echo text; cursor (3,0) |
+| C13 restoration / C15 destruction | Captured termios before == after; paste disabled; destroy success; process exit 0 |
+| Ctrl-L | `draft`, Left, Ctrl-L → same draft, cursor (0,10), cleared visible surface |
+
+Every scenario checks default background and no alternate screen. Resize keeps
+the real trailing space on its full-width continuation row; normalization must
+not delete a visible cell. PTY JSON retains input hex, complete output bytes,
+events, text and cursor observations. These are terminal-state/byte contracts,
+not a claim about pixel rendering or arbitrary emulator reflow.

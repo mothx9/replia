@@ -1,6 +1,6 @@
 //! Real Linux PTYs with an independent VT terminal-state oracle.
 #![cfg(target_os = "linux")]
-use replia::{EditError, Editor, Error, Event, Prompt, Role, Terminal};
+use replia::{EditError, Editor, Error, Event, Interaction, Prompt, Role};
 use rustix::{
     fs::{Mode, OFlags, fcntl_getfl, fcntl_setfl, open},
     io::{read, write},
@@ -53,7 +53,7 @@ fn drain(master: &OwnedFd) -> Vec<u8> {
     }
 }
 fn feed(
-    t: &mut Terminal<'_>,
+    t: &mut Interaction,
     master: &OwnedFd,
     bytes: &[u8],
     screen: &mut vt100::Parser,
@@ -85,8 +85,9 @@ fn pty_editing_submission_and_exact_termios_restore() {
     unusual.special_codes[SpecialCodeIndex::VTIME] = 7;
     tcsetattr(&slave, OptionalActions::Now, &unusual).unwrap();
     let before = termios(&slave);
-    let mut editor = Editor::new(100, 3);
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let editor = Editor::new(100, 3);
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     assert_ne!(termios(&slave), before);
     let mut screen = vt100::Parser::new(24, 80, 100);
     let first = drain(&master);
@@ -115,7 +116,8 @@ fn pty_history_and_completion_preserve_host_control() {
     editor.admit_history("earlier").unwrap();
     editor.insert("draft").unwrap();
     editor.left();
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     let mut screen = vt100::Parser::new(24, 80, 100);
     screen.process(&drain(&master));
     feed(&mut t, &master, b"\x1b[A\x1b[B", &mut screen);
@@ -159,8 +161,9 @@ fn pty_multiline_paste_resize_clear_and_external_output() {
     let _serial = serial();
     let (master, slave) = pty(12, 12);
     let before = termios(&slave);
-    let mut editor = Editor::new(200, 2);
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let editor = Editor::new(200, 2);
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     let mut screen = vt100::Parser::new(12, 12, 100);
     screen.process(&drain(&master));
     assert!(
@@ -220,8 +223,9 @@ fn pty_interrupt_eof_and_nonempty_ctrl_d_are_distinct() {
         (b"\x04", Event::EndOfInput),
         (b"abc\x04\x01\x04\r", Event::Submitted("bc".into())),
     ] {
-        let mut editor = Editor::new(100, 2);
-        let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+        let editor = Editor::new(100, 2);
+        let mut t = Interaction::new(editor);
+        t.open(&slave, &slave, prompt()).unwrap();
         let mut screen = vt100::Parser::new(24, 80, 10);
         screen.process(&drain(&master));
         let interrupted = expected == Event::Interrupted;
@@ -238,8 +242,9 @@ fn pty_interrupt_eof_and_nonempty_ctrl_d_are_distinct() {
 fn pty_rejections_leave_valid_editable_drafts() {
     let _serial = serial();
     let (master, slave) = pty(80, 24);
-    let mut editor = Editor::new(5, 1);
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let editor = Editor::new(5, 1);
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     let mut screen = vt100::Parser::new(24, 80, 10);
     screen.process(&drain(&master));
     feed(&mut t, &master, b"ok", &mut screen);
@@ -272,8 +277,9 @@ fn pty_partial_paste_times_out_with_restoration() {
     let _serial = serial();
     let (master, slave) = pty(80, 24);
     let before = termios(&slave);
-    let mut editor = Editor::new(100, 1);
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let editor = Editor::new(100, 1);
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     let mut screen = vt100::Parser::new(24, 80, 10);
     screen.process(&drain(&master));
     feed(
@@ -304,10 +310,11 @@ fn pty_partial_acquisition_and_read_failure_restore_captured_state() {
     let name = ttyname(&slave, Vec::new()).unwrap();
     let readonly = open(&name, OFlags::RDONLY | OFlags::NOCTTY, Mode::empty()).unwrap();
     let writeonly = open(&name, OFlags::WRONLY | OFlags::NOCTTY, Mode::empty()).unwrap();
-    let mut editor = Editor::new(100, 1);
-    assert!(Terminal::open(&slave, &readonly, &mut editor, prompt()).is_err());
+    let editor = Editor::new(100, 1);
+    let mut t = Interaction::new(editor);
+    assert!(t.open(&slave, &readonly, prompt()).is_err());
     assert_eq!(termios(&slave), before);
-    let mut t = Terminal::open(&writeonly, &slave, &mut editor, prompt()).unwrap();
+    t.open(&writeonly, &slave, prompt()).unwrap();
     drain(&master);
     write(&master, b"x").unwrap();
     assert!(matches!(
@@ -335,10 +342,11 @@ fn pty_unwinding_close_and_exclusivity() {
     };
     let prior_signals = signals();
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let mut editor = Editor::new(100, 1);
-        let _t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
-        let mut other = Editor::new(100, 1);
-        assert!(Terminal::open(&slave, &slave, &mut other, prompt()).is_err());
+        let editor = Editor::new(100, 1);
+        let mut t = Interaction::new(editor);
+        t.open(&slave, &slave, prompt()).unwrap();
+        let mut other = Interaction::new(Editor::new(100, 1));
+        assert!(other.open(&slave, &slave, prompt()).is_err());
         panic!("ordinary host unwinding");
     }));
     assert!(result.is_err());
@@ -346,8 +354,9 @@ fn pty_unwinding_close_and_exclusivity() {
     assert_eq!(signals(), prior_signals);
     let bytes = drain(&master);
     assert!(bytes.windows(8).any(|w| w == b"\x1b[?2004l"));
-    let mut editor = Editor::new(100, 1);
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let editor = Editor::new(100, 1);
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     t.close().unwrap();
     t.close().unwrap();
     assert_eq!(termios(&slave), before);
@@ -360,12 +369,13 @@ fn non_tty_and_mismatched_terminals_fail_before_mutation() {
     let (_m2, s2) = pty(80, 24);
     let before = termios(&slave);
     let null = std::fs::File::open("/dev/null").unwrap();
-    let mut editor = Editor::new(100, 1);
-    assert!(Terminal::open(&null, &slave, &mut editor, prompt()).is_err());
-    assert!(Terminal::open(&slave, &null, &mut editor, prompt()).is_err());
-    assert!(Terminal::open(&slave, &s2, &mut editor, prompt()).is_err());
+    let editor = Editor::new(100, 1);
+    let mut t = Interaction::new(editor);
+    assert!(t.open(&null, &slave, prompt()).is_err());
+    assert!(t.open(&slave, &null, prompt()).is_err());
+    assert!(t.open(&slave, &s2, prompt()).is_err());
     resize(&slave, 1, 24);
-    assert!(Terminal::open(&slave, &slave, &mut editor, prompt()).is_err());
+    assert!(t.open(&slave, &slave, prompt()).is_err());
     assert_eq!(termios(&slave), before);
     assert!(drain(&master).is_empty());
 }
@@ -380,8 +390,9 @@ fn pty_reference_child() {
     };
     let mut editor = Editor::new(1024, 2);
     editor.admit_history("earlier").unwrap();
-    let mut t =
-        Terminal::open(&std::io::stdin(), &std::io::stdout(), &mut editor, prompt()).unwrap();
+    let mut t = Interaction::new(editor);
+    t.open(&std::io::stdin(), &std::io::stdout(), prompt())
+        .unwrap();
     std::io::stderr().write_all(b"O").unwrap();
     loop {
         match t.poll(Duration::from_millis(20)).unwrap() {
@@ -519,8 +530,9 @@ fn pty_reference_records_match_text_cursor_color_and_native_background() {
 fn pty_fragmented_sequences_survive_delays_beyond_a_per_byte_guess() {
     let _serial = serial();
     let (master, slave) = pty(80, 24);
-    let mut editor = Editor::new(100, 0);
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let editor = Editor::new(100, 0);
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     let mut screen = vt100::Parser::new(24, 80, 0);
     screen.process(&drain(&master));
     for &byte in "\x1b[200~e\u{301}界\x1b[201~\x1b[D".as_bytes() {
@@ -536,8 +548,9 @@ fn pty_fragmented_sequences_survive_delays_beyond_a_per_byte_guess() {
 fn pty_wrap_boundaries_and_tall_drafts_keep_the_cursor_on_the_edit() {
     let _serial = serial();
     let (master, slave) = pty(8, 6);
-    let mut editor = Editor::new(100, 0);
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let editor = Editor::new(100, 0);
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     let mut screen = vt100::Parser::new(6, 8, 100);
     screen.process(&drain(&master));
     feed(&mut t, &master, "a界".as_bytes(), &mut screen);
@@ -574,7 +587,8 @@ fn pty_external_output_rejects_controls_and_keeps_queued_input() {
     let mut editor = Editor::new(100, 0);
     editor.insert("ab").unwrap();
     editor.left();
-    let mut t = Terminal::open(&slave, &slave, &mut editor, prompt()).unwrap();
+    let mut t = Interaction::new(editor);
+    t.open(&slave, &slave, prompt()).unwrap();
     let mut screen = vt100::Parser::new(24, 80, 0);
     screen.process(&drain(&master));
     assert!(matches!(

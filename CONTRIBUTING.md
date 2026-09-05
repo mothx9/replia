@@ -8,23 +8,28 @@ evidence is kept separately in [archaeology](docs/archaeology.md).
 ## Checks
 
 Use the current stable Rust toolchain, with `rustfmt` and `clippy` installed.
+Full C qualification also requires cc/c++, pkg-config, Python 3, Valgrind and
+a Linux kernel with Landlock; missing memory/isolation tools fail the gate.
 No MSRV has been established. Record `rustc --version --verbose` and
 `cargo --version` when reporting qualification; stable CI may advance.
 
 ```sh
 cargo fmt --check
-cargo check --all-targets
-cargo test --all-targets
-cargo clippy --all-targets --all-features -- -D warnings
+cargo check --workspace --all-targets
+cargo test --workspace --all-targets
+cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --doc
+cargo test --workspace --release
+python3 tools/qualify.py
 git diff --check
 ```
 
 Use default rustfmt formatting. Cargo declares the lint policy: unsafe code is
 forbidden in this crate, public documentation is required, and
 Clippy's standard lint group is enabled. CI treats compiler and rustdoc
-warnings as errors. A later OS boundary needing unsafe operations must review
-and narrow that policy explicitly with executable lifecycle evidence.
+warnings as errors. The separate C binding permits narrowly documented unsafe pointer/FD operations
+with `unsafe_op_in_unsafe_fn = "deny"`; it must use only the public safe crate API.
+Do not weaken the implementation crate policy to accommodate a binding.
 
 Commit `Cargo.lock` to make repository checks reproducible. It does not pin a
 downstream application's dependency resolution. R1 uses focused Unicode and Linux primitive
@@ -60,3 +65,13 @@ exact commands and results in a contribution. Add tests for implemented
 behavior and meaningful failure paths. Never use placeholder tests or future
 feature names as capability evidence. Do not publish a crate release as part
 of foundation work.
+
+## ABI changes
+
+Edit `api/c-abi.json`, then run `python3 tools/generate_abi.py`. Commit the
+self-contained header, Rust records/signature checks and C/Rust layout probes
+alongside it. `--check` rejects drift. Any contract change needs misuse and
+external consumer evidence, not merely an updated header. See [C API](docs/c-api.md).
+Use a new temporary `--work` directory for qualification; staged artifacts are
+never installed into system directories. Local `--allow-dirty` development runs
+do not satisfy the clean-repository closure gate.

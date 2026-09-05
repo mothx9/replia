@@ -1,20 +1,15 @@
 //! A neutral host loop: echo input, complete a small vocabulary, optionally emit a notice.
-use replia::{Editor, Event, Prompt, Role, Terminal};
+use replia::{Editor, Event, Interaction, Prompt, Role};
 use std::time::{Duration, Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut editor = Editor::new(65_536, 100);
+    let mut terminal = Interaction::new(Editor::new(65_536, 100));
     let notice = std::env::args().any(|a| a == "--notice");
     let mut notice_sent = false;
     loop {
         let event;
         {
-            let mut terminal = Terminal::open(
-                &std::io::stdin(),
-                &std::io::stdout(),
-                &mut editor,
-                Prompt::new("demo")?,
-            )?;
+            terminal.open(&std::io::stdin(), &std::io::stdout(), Prompt::new("demo")?)?;
             let started = Instant::now();
             loop {
                 if notice && !notice_sent && started.elapsed() >= Duration::from_secs(2) {
@@ -47,11 +42,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Event::Submitted(text) => {
                 println!("echo: {text}\n");
                 if !text.is_empty() {
-                    editor.admit_history(&text)?;
+                    terminal.editor_mut()?.admit_history(&text)?;
                 }
-                editor.clear();
+                terminal.editor_mut()?.clear();
             }
-            Event::Interrupted => editor.clear(),
+            Event::Interrupted => terminal.editor_mut()?.clear(),
             Event::EndOfInput => break,
             _ => unreachable!(),
         }
