@@ -1,4 +1,4 @@
-//! Package checks for the initial library foundation, not editor behavior.
+//! Package integrity and dependency-source independence.
 
 use std::process::Command;
 
@@ -18,7 +18,7 @@ fn cargo_output(arguments: &[&str]) -> String {
 }
 
 #[test]
-fn foundation_dependency_graph_contains_only_the_library() {
+fn dependency_graph_has_one_local_root_and_registry_only_dependencies() {
     let graph = cargo_output(&[
         "tree",
         "--locked",
@@ -34,9 +34,15 @@ fn foundation_dependency_graph_contains_only_the_library() {
         "{p}",
     ]);
     let nodes: Vec<_> = graph.lines().collect();
-    assert_eq!(nodes.len(), 1, "R0 must have no dependencies: {graph}");
+    assert!(!nodes.is_empty());
     let identity = format!("{} v{} ", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     assert!(nodes[0].starts_with(&identity), "unexpected root: {graph}");
+    for node in &nodes[1..] {
+        // Registry nodes have only a name/version (and optional dedupe marker).
+        // Local or Git dependencies introduce another parenthesized source.
+        let node = node.strip_suffix(" (*)").unwrap_or(node);
+        assert!(!node.contains('('), "non-registry dependency: {node}");
+    }
 }
 
 #[test]
@@ -53,10 +59,18 @@ fn distributable_contains_source_license_and_development_contract() {
         "Cargo.toml",
         "Cargo.lock",
         "src/lib.rs",
+        "src/core.rs",
+        "src/input.rs",
+        "src/presentation.rs",
+        "src/terminal.rs",
+        "examples/demo.rs",
         "LICENSE",
         "README.md",
         "CONTRIBUTING.md",
         "docs/architecture.md",
+        "docs/presentation.md",
+        "tests/fixtures/presentation.tsv",
+        "tests/pty.rs",
         "tests/foundation.rs",
     ] {
         assert!(

@@ -3,37 +3,71 @@
 REPLIA is an embeddable terminal interaction library for building robust
 line-oriented and REPL-style command interfaces.
 
-**Early / pre-release:** this repository currently contains a compilable Rust
-library foundation, architectural boundaries, and package integrity checks.
-There is no usable line editor or public operational API yet. The crate is not
-published, and Cargo publication is disabled.
+**Early / pre-release:** a working Rust editor and Linux TTY backend are now
+available. The Rust API is experimental; there is no stable ABI or published
+crate. Cargo publication remains disabled.
 
-The intended scope is input editing, terminal state restoration, history
-navigation, host-provided completion, and coordination between input and
-external output. These are design targets, not implemented features. Hosts
-retain their command language, application state, prompt content, and the
-meaning of submitted input and interrupts.
+The editor supports grapheme movement and deletion, bounded UTF-8 drafts,
+in-memory history with draft return, bracketed multiline paste, host completion,
+interrupt/EOF delivery, resize and coordinated external output. Presentation
+stays line-oriented: an accented prompt, compact continuation lines and the
+terminal's default background. `NO_COLOR` and `TERM=dumb` disable text styling.
 
-The library is intended for interpreters, database and debugger shells,
-developer tools, and other interactive command-line applications. It does not
-aim to provide a dashboard or application framework.
+Hosts own the application loop, prompt content, command language, history
+admission, completion candidates and the meaning of input and interrupts.
+REPLIA is suitable for experimenting with interpreters, database and debugger
+shells, developer tools and ordinary interactive command interfaces. It does
+not supply application commands, a scheduler or a dashboard.
 
-## Development
+## Try the reference fixture
 
-Use stable Rust with the `rustfmt` and `clippy` components. From this directory:
+On Linux, in an interactive ANSI/VT-compatible terminal:
+
+```sh
+cargo run --example demo
+# Optional: a notice arrives after two seconds, preserving an unfinished draft.
+cargo run --example demo -- --notice
+```
+
+```text
+demo> hello
+echo: hello
+
+demo>
+```
+
+Tab completes a unique match from `hello`, `help`, `world`. Up/Down recall
+host-admitted input; Home/End and Ctrl-A/Ctrl-E move across the whole draft.
+Ctrl-C returns an interrupt; this fixture clears its draft and starts again.
+Ctrl-D exits with an empty draft, otherwise deletes the next grapheme. Pasted
+newlines remain one input until Enter. Ctrl-L explicitly clears and redraws.
+
+The host API is illustrated in [the fixture](examples/demo.rs) and crate docs
+(`cargo doc --no-deps`). Applications keep an `Editor`, borrow it through a
+scoped `Terminal`, poll for typed `Event`s and optionally call `complete` or
+`external_output`. They decide what happens after the terminal is restored.
+
+## Development and qualification
+
+Use current stable Rust with `rustfmt` and `clippy`:
 
 ```sh
 cargo fmt --check
 cargo check --all-targets
 cargo test --all-targets
 cargo clippy --all-targets --all-features -- -D warnings
+cargo test --doc
+git diff --check
 ```
 
-The foundation has no third-party dependencies. CI checks Linux; other
-platforms and a minimum supported Rust version have not been qualified.
+Tests include deterministic editing/protocol cases and real Linux PTYs with a
+VT terminal-state oracle. No sibling repository or application runtime is
+needed. Other operating systems, every terminal's Unicode/font/reflow behavior,
+a minimum Rust version and production maturity have not been qualified.
 
-See [architecture](docs/architecture.md) for ownership and the next bounded
-implementation step, and [contributing](CONTRIBUTING.md) for validation policy.
+See [architecture](docs/architecture.md) for ownership, Unicode and lifecycle
+contracts, [presentation evidence](docs/presentation.md) for the reference
+comparison, and [contributing](CONTRIBUTING.md) for development policy.
 
 ## License
 

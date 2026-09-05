@@ -1,5 +1,49 @@
 # R0 engineering archaeology
 
+## R1 reconciliation and boundary refinement
+
+At R1 entry, REPLIA was clean on `master`, HEAD
+`cabffdf8c7c046857d3f4d8a4ad91f81c255824b`, tree
+`df4b7ec4e269d0387ce0c04e36a9b6d00ca983d1`. Its parent remains the independent
+R0 root `39bc1c7b2f630a9fd93180e73c6008244f402ed0`. The remote is the owner's
+personal public repository, `mothx9/replia`.
+
+The planned YVEX HEAD/tree were `cb336ad60c12d6fa841dc0715bba9d44aa721846` /
+`528dcb1d9044d06807be2b67eb51fbd84fc0adf8`. The observed `models1` HEAD/tree
+were `3a6520945a5c103365178f48104f0ccdb5154624` /
+`dcf123f87ffe753744caf4f73d2d5644fdbf39d2`. The working tree was clean;
+intervening commits `bc94a319` and `3a652094` did not change `client.c`, `out.c`,
+`stream.c`, the input operator adapter or `tests/repl_pty.sh`. R1's presentation
+reference is the observed SHA, not an assumed old snapshot. The read-only source
+hash manifest also covers Makefile and the operator/source-owner registries.
+
+The R0 tables below remain historical evidence. R1 strengthens their generic
+presentation candidate: palette, prompt grammar, spacing, continuation, line
+surface and output coordination belong to REPLIA. Product labels, runtime facts,
+commands and semantic rendering remain with the host. The [presentation record](presentation.md)
+contains the pinned source-derived byte captures and actual PTY comparisons.
+
+| Donor issue or choice | R1 resolution and executable evidence |
+| --- | --- |
+| Scalar counting and byte-oriented edits | Grapheme editor plus cell layout; `tests/core.rs`, presentation unit tests and mixed-width PTY cursor assertions |
+| Current draft lost when returning from history | Text and cursor saved/restored; history tests cover recalled edits and bounded admission |
+| Eight-byte / 25 ms escape assumption | Incremental 64-byte staging plus drain/idle expiry; decoder tests and delayed-byte PTY test |
+| Controls act during paste, CRLF doubles, incomplete paste ambiguous | Atomic bounded paste, deliberate newline normalization, observable rejection/timeout cleanup; decoder and PTY negative tests |
+| One-row erase and resize dimensions ignored | Physical row layout, old-row erase and cursor-following viewport; actual PTY width/height changes and VT state assertions |
+| EOF, interruption and read failures lose distinctions | Typed events and errors; nonempty Ctrl-D forward deletion is an explicit correction |
+| Cleanup errors ignored and partial initialization unqualified | Exact saved termios, fallible close and non-panicking Drop; real PTY read/write/acquisition/unwind tests |
+| Global signal ownership coupled to application cancellation | No handlers/masks/threads; keyboard byte interrupt, host interrupt method, dimension polling; signal-state preservation test |
+| Slash registry lookup inside editing | Host reads draft/cursor and supplies a validated replacement; no command vocabulary in the library |
+| Active application output has no editable-draft transaction | Generic synchronous text-output transaction preserves draft/cursor and queued input; PTY external-output tests |
+| Accented palette, default background, plain-color rules, compact prompt and continuation | Intentionally preserved in generic presentation; reference records and cell/style/byte assertions |
+
+YAI remains consumer archaeology only: the R0 linenoise/FFI seam and I01 ownership
+below are unchanged requirements. No YAI source was changed, no editor was added
+there, and no I01/I02 or cognitive interlock work was reopened. Neither product
+is a dependency or linked into any REPLIA test. R1 performs no consumer cutover.
+
+## R0 source record (historical)
+
 Historical evidence for `REPLIA.RECONSTRUCTION.BASELINE.0`, inspected on
 2026-09-05. Donor names in this record identify provenance and consumer
 boundaries only. No source code or Git history was imported into REPLIA.

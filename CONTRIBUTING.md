@@ -21,17 +21,26 @@ git diff --check
 ```
 
 Use default rustfmt formatting. Cargo declares the lint policy: unsafe code is
-forbidden in the current foundation, public documentation is required, and
+forbidden in this crate, public documentation is required, and
 Clippy's standard lint group is enabled. CI treats compiler and rustdoc
 warnings as errors. A later OS boundary needing unsafe operations must review
 and narrow that policy explicitly with executable lifecycle evidence.
 
 Commit `Cargo.lock` to make repository checks reproducible. It does not pin a
-downstream application's dependency resolution. At R0 there are no normal,
-development, build, or optional dependencies. The foundation tests ask Cargo
-to verify that graph and the distributable file inventory. They test packaging,
-not terminal functionality; adding a justified generic dependency in a later
-wave requires updating this baseline deliberately.
+downstream application's dependency resolution. R1 uses focused Unicode and Linux primitive
+dependencies plus a dev-only VT state oracle; reasons and license policy are in
+[architecture](docs/architecture.md). Fetch the locked graph once with
+`cargo fetch --locked`; all checks can then run with `CARGO_NET_OFFLINE=true`.
+Foundation tests verify registry-only dependency sources and package inventory.
+Core/decoder tests verify deterministic contracts, and real Linux PTY tests
+verify lifecycle and display state, including failures. Child processes isolate
+color environment changes without unsafe process-global environment mutation.
+
+Changes to visible presentation must explain intentional differences against
+[the reference record](docs/presentation.md), with byte/cell/cursor evidence.
+Do not regenerate snapshots simply to accept a regression. New dependencies
+must justify what std lacks, correctness ownership, compatible license and
+whether third-party types enter the public API.
 
 ## Independence review
 

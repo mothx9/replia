@@ -1,4 +1,6 @@
-# R0 foundation evidence
+# Baseline evidence
+
+The R0 sections below are historical. R1 qualification is recorded at the end.
 
 Wave: `REPLIA.RECONSTRUCTION.BASELINE.0`. Date: 2026-09-05.
 This record covers the foundation before its genesis commit. Git and the final
@@ -110,3 +112,93 @@ measurement, consumer integration, C ABI or published crate. All terminal
 requirements in [architecture](architecture.md) remain R1 work. Historical
 source classification and read-only consumer inspection are documented in
 [archaeology](archaeology.md), with pinned references and test-evidence limits.
+
+## R1 kernel qualification
+
+Wave: `REPLIA.TERMINAL.EDITOR.KERNEL.0`, 2026-09-05. Started on clean `master`
+at `cabffdf8c7c046857d3f4d8a4ad91f81c255824b`, tree
+`df4b7ec4e269d0387ce0c04e36a9b6d00ca983d1`; continued on that branch without
+reset, worktree or history rewrite. The personal public remote remains
+`https://github.com/mothx9/replia`. The resulting commit/tree are owned by Git
+and the delivery report, not a self-referential hash in this document.
+
+The observed donor and planned baseline are recorded in [archaeology](archaeology.md).
+Eight inspected donor file hashes remained unchanged, and the live donor tree
+remained clean. The R0 YAI archive (1353 regular files) was compared byte-for-byte
+with its source snapshot and remained identical. No YAI local Git checkout was
+created; that archive is read-only archaeological evidence, not a dependency.
+
+Actual qualification environment: `rustc 1.98.1 (48a229cea 2026-09-01)`,
+`cargo 1.98.1 (797e8a9bc 2026-08-05)`, host `aarch64-unknown-linux-gnu`, LLVM
+22.1.8, Linux `6.17.0-1021-nvidia`. No MSRV or non-Linux qualification is inferred.
+Checks used `CARGO_NET_OFFLINE=true`, `RUSTFLAGS='-D warnings'` and
+`RUSTDOCFLAGS='-D warnings'` after fetching the locked registry dependencies.
+
+| Exact command | Result |
+| --- | --- |
+| `cargo fmt --check` | Exit 0 |
+| `cargo check --all-targets` | Exit 0 |
+| `cargo test --all-targets` | Exit 0; 32 tests passed, none failed/ignored |
+| `cargo clippy --all-targets --all-features -- -D warnings` | Exit 0; warning-clean |
+| `cargo test --doc` | Exit 0; two doctests passed |
+| `git diff --check` | Exit 0 |
+| `cargo build --example demo` | Exit 0; executable then exercised on a real PTY |
+
+The all-target total comprises ten internal decoder/layout/lifecycle tests,
+six public core tests, two packaging/dependency guards and fourteen PTY harness
+tests. One PTY test is the environment-isolated child entrypoint; the reference
+parent invokes it for ten independent recorded cases. The example test harness
+itself has zero unit tests; its executable was separately driven through echo,
+unique completion, multiline paste, notice during a mid-cursor draft, interrupt
+and EOF, with exact termios restoration asserted. No terminal capability is
+inferred from an empty example harness.
+
+Negative coverage includes invalid/non-TTY/mismatched handles, unsupported
+window size, partial acquisition, a real write-only input FD/read error, a real
+read-only output FD/write error **after** acquisition, unwind cleanup, competing
+instances, invalid/incomplete UTF-8, unknown/fragmented sequences, overflow,
+incomplete paste, pasted controls, invalid completion/output text and unchanged
+signal state. Display coverage includes mixed cell widths, continuation, exact
+row edges, tall drafts, actual width/height changes, non-end cursors, queued
+input retained across output, all palette roles and environment disable rules.
+The [presentation record](presentation.md) states exactly which donor-derived
+byte/state comparisons were executed and their limits.
+
+Dependency manifest audit:
+
+| Direct dependency | Role / reason std is insufficient | License selection | Public type leakage |
+| --- | --- | --- | --- |
+| `rustix 1.1.4` | Safe termios, FD identity and poll; PTY acquisition only in tests | MIT option | None; API uses std FDs/errors |
+| `unicode-segmentation 1.13.3` | Extended grapheme boundaries absent from std | MIT option | None |
+| `unicode-width 0.2.2` | Unicode cell-width tables absent from std; normal ambiguous-narrow policy | MIT option | None |
+| `vt100 0.16.2` (dev only) | Independent ANSI/VT cell/style/cursor oracle absent from std | MIT | None |
+
+The locked graph has one workspace root and fourteen registry packages; all
+transitive packages offer MIT. `cargo tree` tests reject any extra local/Git
+source. No package features, custom build script, application dependency, native
+consumer link, C ABI or release was added. Public API, examples, style roles,
+environment reads and package inventory were manually audited. The only library
+environment variables are `NO_COLOR` and `TERM`. Existing MIT attribution remains.
+
+All five Cargo commands also passed in
+`/tmp/replia-r1-isolated-ve3ssd8i/replia`, a fresh source copy and target directory.
+A private Cargo home held only a copied registry cache. Linux Landlock denied
+read/execute access to source outside the copied crate, dependencies, toolchain
+and system paths. Access probes explicitly returned `PermissionError` for the
+original crate manifest, the donor editor and the consumer archive's manifest
+before offline compilation and all PTY tests ran. Neither source archive was
+renamed, removed or changed. This proves the build and tests can operate when
+both application source trees are inaccessible.
+
+Local ephemeral evidence: `/tmp/replia-r1-37brrbog/checks.json`, `isolation.py`,
+`isolation.log`, `donor.json`, `presentation_probe.c`, `demo-pty.bin`. Committed
+tests and byte records carry the reproducible contracts; these temporary audit
+files are not build inputs. CI fetches the locked registry graph, runs all six
+authoritative checks on a clean Linux checkout with warnings denied, and checks
+tracked/untracked cleanliness. The pushed commit's actual CI result is reported
+only after GitHub completes that run.
+
+R1 does not qualify other operating systems, every emulator's Unicode/reflow
+behavior, unrestricted concurrent writers, termination bypassing cleanup,
+unframed paste, a stable API/ABI or production maturity. No consumer was cut over,
+no release published and no R2 ABI work begun.

@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  foundation:
+  checks:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
@@ -28,6 +28,10 @@ jobs:
         run: |
           rustc --version --verbose
           cargo --version
+      - name: Fetch locked dependencies
+        env:
+          CARGO_NET_OFFLINE: "false"
+        run: cargo fetch --locked
       - run: cargo fmt --check
       - run: cargo check --all-targets
       - run: cargo test --all-targets
@@ -35,5 +39,6 @@ jobs:
       - run: cargo test --doc
       - name: Check tracked files stayed unchanged
         run: |
+          git diff --check
           git diff --exit-code
           test -z "$(git ls-files --others --exclude-standard)"

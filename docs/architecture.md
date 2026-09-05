@@ -1,111 +1,197 @@
 # Architecture and implementation boundary
 
-Status: `REPLIA.RECONSTRUCTION.BASELINE.0` (R0). This is the genesis of an
-independent terminal interaction library. The crate currently exports no
-operational API; this document defines ownership, not implemented capability.
+Status: `REPLIA.TERMINAL.EDITOR.KERNEL.0` (R1). This is an independent, early
+terminal interaction library with a working Linux editor. The public Rust
+surface is experimental. No C ABI, consumer adapter or application framework
+is implemented.
 
-## Ownership
+## Ownership and structure
 
-| Candidate library mechanism | Host responsibility |
+| Implemented library mechanism | Host responsibility |
 | --- | --- |
-| Editable text, cursor invariants, insertion and deletion | Meaning, validation and execution of submitted text |
-| In-memory history navigation | Which entries to retain; persistence, storage paths and retention policy |
-| Input decoding, paste framing, key recognition | Application command language and keybinding consequences |
-| Submit, interrupt and end-of-input delivery | Commit, cancel, retry or exit decisions |
-| Completion invocation and validated text replacement | Candidates, vocabulary, eligibility and application lookup |
-| Terminal acquisition, restoration, resize and redraw | When interaction begins/ends and what the prompt says |
-| Coordinated output and restoration of the editing display | Content formatting, application progress and scheduling |
+| Bounded text, grapheme cursor, insertion/deletion and navigation | Meaning, validation and execution of input |
+| History navigation and preservation of the current draft | Admission, privacy, persistence, deduplication and retention choices |
+| Input decoding, paste framing and key recognition | Application command language |
+| Typed submit, interrupt, end-of-input and failure outcomes | Commit, cancel, retry, clear or exit decisions |
+| Completion request and validated replacement | Candidates, vocabulary, eligibility, selection and lookup errors |
+| Scoped terminal acquisition, restoration, resize and redraw | When editing begins and ends; coordinated access to the terminal |
+| Generic style roles, prompt composition, continuation, spacing and line surface | Actual labels, suffix values, messages and their semantic meaning |
+| Synchronous external text output with draft/cursor restoration | Content, scheduling and application operations |
 
-Terminal I/O is the only intended external effect of the library. Application
-filesystem actions, durable application state, network execution, command
-registries, content interpretation and authorization remain outside it.
-No background worker, signal policy or process-global owner is implied by this
-table. The host must be able to retain control of its application loop.
+R1 refines the initial formatting boundary: **generic terminal presentation is
+library-owned**; semantic rendering remains host-owned. Future consumers can
+replace their generic prompt/palette/redraw infrastructure instead of retaining
+a second terminal template. Terminal I/O is the only library effect; application
+storage, filesystem actions, networking and command registries remain external.
 
-## Decomposition hypothesis
+Private modules follow demonstrated dependencies:
 
-Three internal domains may become useful as implementation evidence develops:
+- `core`: deterministic `Editor`, bounded history and edit errors. No FDs,
+  callbacks, signals, clocks, environment reads or process globals.
+- `input`: incremental bounded byte decoder producing private key actions.
+  Expiration is explicit input from the adapter; no clock lives in this module.
+- `presentation`: generic `Prompt`, `Theme`, `Role` and private cell layout.
+  Layout consumes core state. Only explicit theme environment resolution reads
+  `NO_COLOR`/`TERM`; the renderer itself has no I/O.
+- `terminal`: Linux FD/termios lifecycle, polling, interaction events, completion
+  transactions and output coordination. No separately exported internal modules.
 
-- **Core:** deterministic text/cursor state and editing transitions, independent
-  of file descriptors, clocks, signals and application objects.
-- **Terminal:** OS/TTY lifecycle, byte protocol, dimensions and screen updates.
-- **Interaction:** the boundary through which a host receives input outcomes,
-  provides completion and coordinates external output.
+## Text, cursor and display
 
-These are working names, not public modules or a framework. Core must not
-depend on terminal or host implementations. Terminal and interaction adapters
-may use core state. Introduce modules and public types only as a concrete
-contract requires them; no ABI is established by R0.
+Storage and capacities are **UTF-8 bytes**. Every public cursor/range endpoint
+must lie on an **extended grapheme boundary**, as determined by
+`unicode-segmentation`. Left/Right, Backspace/Delete operate on those clusters.
+Insertion/deletion can join adjacent clusters; the cursor advances to the next
+valid boundary after the edit. Invalid ranges, controls and capacity overflow
+leave the original text and cursor unchanged.
 
-## Behavioral discipline
+Home/End and Ctrl-A/Ctrl-E refer to the whole input, including multiple logical
+lines. Up/Down navigate history, not vertical columns. Input is neither trimmed
+nor normalized as Unicode. LF and TAB are accepted text; other Unicode controls
+are rejected. Bracketed paste performs the separate newline normalization below.
 
-Preserve intended interaction, not every artifact of the reference source.
-The [archaeology record](archaeology.md) distinguishes generic mechanisms,
-host meaning, observed implementation choices and source-derived deficiencies.
-Its source references are pinned. Existing test text is evidence of test
-intent; it is not a claim that those tests were run during R0.
+Layout uses `unicode-width`'s normal (ambiguous-narrow) cell policy per grapheme.
+ANSI style sequences are not text and contribute no cells. Draft TAB expands
+to four-column stops. CJK wide characters, accented text, combining clusters,
+ordinary emoji and joined emoji are covered by core/layout tests. The independent
+VT oracle covers the subset it can model; a font or emulator may render a joined
+emoji or ambiguous character differently. Full Unicode terminal equivalence,
+bidi layout and all terminal width tables are not claimed.
 
-The following negative requirements constrain future implementation:
+Prompt fields are plain control-free text, at most 1024 bytes each. The label
+and optional literal suffix compose as `<Accent>label+suffix><Default> `;
+continuations default to `... `. No raw ANSI prompt injection is accepted.
+Style roles are Default, Strong, Accent, Dim, Success, Warning and Error. All
+SGR values have one authority in `Theme`. No background color or alternate
+screen is set. Disabling color emits no SGR, including no reset residue, while
+preserving text. `TERM=dumb` follows the reference's color rule; it is **not** a
+promise to operate on a terminal that lacks the cursor/erase protocol entirely.
 
-1. Every successful terminal state change needs paired cleanup on normal exit,
-   EOF, interrupt, I/O failure and partial initialization. Restore the captured
-   state, not a guessed cooked-mode default. Report explicit restoration failure;
-   cleanup during unwinding must not panic. Uncatchable termination is outside
-   a library's restoration guarantee.
-2. Do not silently replace host signal handlers, change unrelated masks, exit
-   the process, or install a global signal thread. Decide signal integration
-   and exclusive terminal ownership before implementing them.
-3. Keep cursor offsets on valid text boundaries. Specify invalid/incomplete
-   UTF-8 handling, grapheme movement and terminal display width separately.
-   A byte count or scalar count is not a column count.
-4. Parse fragmented/unknown escape sequences and paste boundaries with bounded
-   memory and progress. Pasted newlines must not submit multiple commands.
-   Specify CR/LF normalization and treatment of pasted control bytes; payload
-   must not execute terminal escapes or silently invoke editing shortcuts.
-5. Redraw must preserve text, cursor and scrollback at wraps, multiple lines
-   and resized widths. Prompt styling cannot be counted as visible columns.
-   No alternate screen or dashboard is needed for a line-oriented editor.
-6. EOF, interrupt and I/O error must be distinguishable. Deliver an interrupt
-   without choosing what application operation it cancels. Buffer discard,
-   empty/nonempty Ctrl-D behavior and repeated interrupt policy require
-   explicit contracts; they cannot follow accidentally from transport errors.
-7. Completion replacement must validate range and text boundaries and handle
-   no match, ambiguity and failure without losing the existing input. No
-   command grammar or slash prefix is intrinsic to completion.
-8. There must be one coordinated terminal writer. Host output must not corrupt
-   a draft or cursor. Whether editing is suspended, retained or resumed is
-   explicit; silently discarding queued input is not a universal library rule.
-9. State remains instance-owned. History admission and persistence belong to
-   the host; navigation must not unexpectedly destroy its current draft.
-   Limits and capacity failures must be observable and leave valid state.
-10. Detect unsuitable input/output before changing terminal state. Define the
-    tested Linux TTY boundary and return actionable errors; do not claim a
-    portable backend or invent a non-TTY application policy.
+Physical rows are explicitly laid out with CR/LF; full-width boundaries and
+wide-character gaps are handled without counting scalars as columns. A logical
+newline immediately after a full row does not introduce an extra blank row.
+The previous editing rows are erased before redrawing, then the logical cursor
+is restored. Normal short end insertion appends directly, preserving the compact
+reference rhythm. Ctrl-L explicitly clears the visible screen and redraws.
+For drafts taller than the terminal, a cursor-following viewport retains at most
+height minus one physical rows; hidden text is retained and still submitted.
+Minimum dimensions are two columns and two rows. Resize qualification covers
+PTY dimension changes and the VT cell model, not every emulator's scrollback
+reflow policy. See [presentation evidence](presentation.md).
 
-R0 cannot qualify these requirements because it contains no editor. No feature,
-performance, compatibility, C ABI or terminal portability claim follows from a
-successful foundation build.
+## Bounded input and paste
 
-## Exact next wave
+The decoder consumes one byte per poll. UTF-8 staging holds at most four bytes;
+escape staging at most 64. Supported CSI/SS3 sequences cover arrows, Home/End,
+Delete and bracketed-paste delimiters; listed control keys include Enter,
+Ctrl-A/C/D/E/L, Backspace and Tab. Unknown sequences are rejected. Oversized CSI
+or OSC sequences drain to their terminator with constant extra memory. A bad
+UTF-8 byte and the incomplete scalar containing it are rejected together; the
+offending byte is not replayed as a shortcut.
 
-`REPLIA.TERMINAL.EDITOR.KERNEL.0` (R1) is the next bounded implementation delta:
+The adapter expires pending sequences after a 250 ms idle interval, observed
+while polling. Each poll waits at most 100 ms. This is an idle bound, not a
+fixed total sequence length/time guess; tests deliver each byte with a delay
+longer than 25 ms. Expired UTF-8/escape input produces `Event::Rejected` and
+keeps the draft. Host starvation can delay observation.
 
-1. Resolve the input, Unicode, limit, EOF and interrupt choices above in
-   executable tests, then implement a small independent Rust editing kernel:
-   buffer/cursor operations, navigation and in-memory history with draft return.
-2. Add bounded incremental input/escape decoding, bracketed paste and newline
-   handling; test fragmentation, invalid input and capacity failure.
-3. Add the Linux terminal lifecycle and scrollback-preserving prompt/redraw
-   adapter with explicit ownership. Test real PTYs, exact termios restoration,
-   partial-open and I/O failure, resize, wraps and multiline input.
-4. Establish only the minimal host boundary needed for submit, interrupt, EOF,
-   completion request/replacement and suspend/output/redraw/resume. A generic
-   fixture must prove the boundary without an application dependency. An
-   asynchronous scheduler or streaming framework is not required.
-5. Expose only Rust API proven by those tests; document Linux qualification
-   and any remaining limitations. Revisit lint/dependency policy only with
-   implementation evidence. Run all R0 checks plus kernel and PTY checks.
+Bracketed paste stages one atomic payload, bounded by the editor byte limit,
+and recognizes fragmented begin/end markers. CRLF becomes one LF; lone CR and
+LF become LF. TAB remains literal text, not completion. Other control characters
+reject the **entire** paste; they never execute shortcuts. Oversized payloads
+are drained through their end marker, then rejected. The wire-byte bound is
+applied before newline normalization, and insertion separately checks remaining
+draft capacity. Invalid UTF-8 is rejected. No partial paste is committed.
 
-No consumer cutover, C ABI, application command registry, rich-content renderer,
-panels, status widgets, release publication or later application work belongs
-to this delta. R1 has not begun in R0.
+An incomplete paste or physical EOF during a pending sequence produces a terminal
+I/O error and closes/restores the interaction. The host must treat this as a
+failed input transaction; automatically reopening on an untrusted remaining
+byte stream would erase the framing distinction. Enter outside paste submits
+one complete string. Unbracketed LF/CR each mean Enter; automatic detection of
+unframed multi-command paste is not promised.
+
+## Terminal and signal ownership
+
+`Terminal::open` validates TTY input and output and requires the same terminal
+before changing state. It duplicates the FDs, captures full termios and window
+dimensions, enters raw mode with ISIG disabled, enables bracketed paste and draws.
+No input queue is flushed. One active interaction per process is admitted;
+other opens fail before mutation. The small atomic lease prevents competing
+editors but does not install a process-wide signal policy.
+
+Submit, empty-buffer Ctrl-D/read EOF, interruption and explicit close restore
+**exactly the captured termios**, not a guessed cooked mode. Read/write errors,
+partial acquisition and ordinary unwinding also attempt restoration. Bracketed
+paste is disabled and styling reset during cleanup. A failed output FD does not
+skip termios restoration; cleanup also tries the same-terminal input FD when
+writable. Explicit errors report cleanup failure along with the original error.
+Drop is best effort and never panics or exits the process. Disconnected terminals
+may reject restoration syscalls, and no library can promise cleanup on SIGKILL,
+abort or process termination that bypasses unwinding.
+
+No handlers, signal masks, signal threads or cancellation threads are installed,
+so there is no previous handler state to replace or restore. Keyboard Ctrl-C is
+a decoded byte yielding `Interrupted`, with a visible `^C` at the end of the
+editing surface. OS SIGINT/SIGTERM/SIGTSTP policy stays with the host. A host may
+observe its own signals and call `interrupt` or `close`; suspension requires
+closing before suspension and opening again after resumption. Resize is observed
+by reading current dimensions on each poll, independent of SIGWINCH handlers;
+it works even when the host owns or blocks SIGWINCH. Concurrent direct writers
+or externally changing terminal modes during an interaction are unsupported.
+
+## Host interaction contract
+
+`Terminal` borrows an `Editor`; its immutable `editor()` view exposes current
+text and byte cursor. Terminal closure does not clear the editor or admit history.
+The host can retain rejected/interrupted/submitted input and choose its next step.
+
+- `Event::Submitted(String)`: Enter; terminal restored.
+- `Event::Interrupted`: decoded Ctrl-C or explicit host call; terminal restored.
+- `Event::EndOfInput`: physical EOF or Ctrl-D with empty text; terminal restored.
+  Ctrl-D with nonempty text deletes the next grapheme (no-op at end).
+- `Event::CompletionRequested`: Tab; active draft remains available.
+- `Event::Rejected(EditError)`: recoverable input/capacity failure; editing continues.
+- `Error::Edit`: invalid host edit/output text; unchanged draft, interaction active.
+- `Error::Io`: terminal failure; restoration attempted, interaction unavailable
+  after successful restoration. A failed restoration is reported.
+
+Completion has no callback registry or candidate type. The host reads text and
+cursor, discovers and selects candidates, and calls `complete(range, text)` for
+one chosen replacement. Range endpoints must be ordered grapheme boundaries.
+Zero candidates, ambiguity, refusal or lookup failure need no mutation. The
+same atomic validation applies to Unicode and oversized replacements.
+
+History is configured by entry count and input byte bound. Admission is explicit,
+with oldest-entry eviction only when the host-selected bound is full. No hardcoded
+history size, persistence, deduplication or privacy policy exists. First Up saves
+the current draft **and cursor**; Down past the newest entry restores both.
+Editing a recalled entry changes only the current edit. Navigating away discards
+that recalled edit, without modifying admitted history.
+
+`external_output(role, text)` is a synchronous display transaction: disable paste
+framing, clear the editing rows, write validated host text using a generic role,
+finish its line, enable paste and redraw draft/cursor. LF/CRLF are normalized;
+other controls except TAB reject before any terminal mutation. There is no raw
+ANSI passthrough. Input stays raw and queued bytes are retained. The host controls
+when output is written; independent concurrent writes must be serialized through
+this method. Partial fragments can be sent as separate lines; continuous
+no-newline streaming batches and an unrestricted writer guard are not R1 APIs.
+
+## Dependencies and next boundary
+
+`rustix` owns safe Linux termios/FD/poll calls absent from std. Its PTY feature
+is enabled only for tests. `unicode-segmentation` owns extended grapheme boundaries;
+`unicode-width` owns Unicode cell estimates, neither supplied by std. `vt100` is
+a dev-only independent terminal-state oracle. All four offer the MIT license;
+the locked transitive graph also offers MIT. No third-party type leaks into the
+public API, no application source dependency exists, and crate unsafe code stays
+forbidden. Exact versions and evidence are in [baseline](baseline.md).
+
+The next bounded wave is `REPLIA.INTERACTION.API.ABI.0` (R2): review and consolidate
+the implemented Rust interaction contract; specify an explicit C ABI with opaque
+ownership, allocation/free, event/error/length rules and completion/output
+lifetimes; implement and test a standalone C caller, headers and linkage if that
+wave authorizes them. Qualify cross-language failure and cleanup before admitting
+consumer adapters. R2 does not imply a consumer cutover, removal of old code,
+application semantics, a dashboard, a release or any portable-backend promise.
+No R2 implementation is included here.
