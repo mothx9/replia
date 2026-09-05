@@ -1,4 +1,4 @@
-//! Independent VT oracle for captured C-process terminal bytes; no REPLIA API use.
+//! Independent VT oracle for captured C-process terminal bytes; no REPLAI API use.
 use std::io::{self, BufRead};
 fn main() {
     let mut p = vt100::Parser::new(24, 80, 1000);

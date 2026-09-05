@@ -1,5 +1,5 @@
 //! Deterministic editing and host-owned history contracts.
-use replia::{EditError, Editor};
+use replai::{EditError, Editor};
 
 #[test]
 fn editing_moves_and_deletes_extended_graphemes() {

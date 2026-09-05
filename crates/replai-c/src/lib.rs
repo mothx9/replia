@@ -1,4 +1,4 @@
-//! Narrow, pre-release C ABI adapter using only the public safe `replia` API.
+//! Narrow, pre-release C ABI adapter using only the public safe `replai` API.
 //! All pointer storage remains caller-owned except the opaque handle allocation.
 #![cfg_attr(not(target_os = "linux"), allow(unused))]
 #[cfg(not(target_os = "linux"))]
@@ -6,7 +6,7 @@ compile_error!("the C binding is qualified only on Linux");
 #[cfg(not(panic = "unwind"))]
 compile_error!("the C binding requires panic=unwind for containment");
 
-use replia::{EditError, Editor, Error, Event, Interaction, Prompt, Role};
+use replai::{EditError, Editor, Error, Event, Interaction, Prompt, Role};
 use std::{
     mem,
     os::fd::BorrowedFd,
@@ -35,13 +35,13 @@ fn guard(f: impl FnOnce() -> i32) -> i32 {
             if let Err(secondary) = catch_unwind(AssertUnwindSafe(|| drop(payload))) {
                 mem::forget(secondary);
             }
-            REPLIA_INTERNAL
+            REPLAI_INTERNAL
         }
     }
 }
 fn aligned<T>(p: *const T) -> Result<(), i32> {
     if p.is_null() || !p.is_aligned() || p.addr().checked_add(mem::size_of::<T>()).is_none() {
-        Err(REPLIA_INVALID_ARGUMENT)
+        Err(REPLAI_INVALID_ARGUMENT)
     } else {
         Ok(())
     }
@@ -49,7 +49,7 @@ fn aligned<T>(p: *const T) -> Result<(), i32> {
 fn span(p: *const u8, len: usize) -> Result<(), i32> {
     if len > isize::MAX as usize || (p.is_null() && len != 0) || p.addr().checked_add(len).is_none()
     {
-        Err(REPLIA_INVALID_ARGUMENT)
+        Err(REPLAI_INVALID_ARGUMENT)
     } else {
         Ok(())
     }
@@ -62,7 +62,7 @@ unsafe fn text<'a>(p: *const u8, len: usize) -> Result<&'a str, i32> {
     // SAFETY: caller provides readable, live bytes for this call; span rejects
     // NULL, address overflow and lengths beyond slice bounds. No reference is retained.
     let bytes = unsafe { std::slice::from_raw_parts(p, len) };
-    std::str::from_utf8(bytes).map_err(|_| REPLIA_INVALID_UTF8)
+    std::str::from_utf8(bytes).map_err(|_| REPLAI_INVALID_UTF8)
 }
 unsafe fn record<T: Copy>(p: *const T) -> Result<T, i32> {
     aligned(p)?;
@@ -70,13 +70,13 @@ unsafe fn record<T: Copy>(p: *const T) -> Result<T, i32> {
     // The size is checked BEFORE any later fields are accessed.
     let size = unsafe { p.cast::<u32>().read() };
     if size as usize != mem::size_of::<T>() {
-        return Err(REPLIA_ABI_MISMATCH);
+        return Err(REPLAI_ABI_MISMATCH);
     }
     // SAFETY: matching struct_size promises readable storage for the whole C
     // record. Both records have ABI version as their second u32.
     let version = unsafe { p.cast::<u32>().add(1).read() };
-    if version != REPLIA_C_ABI_VERSION {
-        return Err(REPLIA_ABI_MISMATCH);
+    if version != REPLAI_C_ABI_VERSION {
+        return Err(REPLAI_ABI_MISMATCH);
     }
     // SAFETY: T is one of the Copy repr(C) ABI records, and its extent was checked.
     Ok(unsafe { p.read() })
@@ -89,10 +89,10 @@ unsafe fn with_handle(p: *mut Handle, f: impl FnOnce(&mut Handle) -> i32) -> i32
     // no alias to internal data crosses the ABI. NULL/alignment checked above.
     let h = unsafe { &mut *p };
     if h.poisoned {
-        return REPLIA_INVALID_STATE;
+        return REPLAI_INVALID_STATE;
     }
     let status = guard(|| f(h));
-    if status == REPLIA_INTERNAL {
+    if status == REPLAI_INTERNAL {
         h.poisoned = true;
         let _ = guard(|| result(h.interaction.close()));
     }
@@ -100,36 +100,36 @@ unsafe fn with_handle(p: *mut Handle, f: impl FnOnce(&mut Handle) -> i32) -> i32
 }
 fn edit(e: EditError) -> i32 {
     match e {
-        EditError::Capacity => REPLIA_CAPACITY,
-        EditError::InvalidText => REPLIA_INVALID_TEXT,
-        EditError::InvalidRange => REPLIA_INVALID_RANGE,
-        EditError::HistoryDisabled => REPLIA_HISTORY_DISABLED,
-        EditError::InvalidUtf8 => REPLIA_INVALID_UTF8,
-        EditError::InvalidSequence => REPLIA_INVALID_SEQUENCE,
+        EditError::Capacity => REPLAI_CAPACITY,
+        EditError::InvalidText => REPLAI_INVALID_TEXT,
+        EditError::InvalidRange => REPLAI_INVALID_RANGE,
+        EditError::HistoryDisabled => REPLAI_HISTORY_DISABLED,
+        EditError::InvalidUtf8 => REPLAI_INVALID_UTF8,
+        EditError::InvalidSequence => REPLAI_INVALID_SEQUENCE,
     }
 }
 fn error(e: Error) -> i32 {
     match e {
         Error::Edit(e) => edit(e),
-        Error::Io(_) => REPLIA_IO,
-        Error::State => REPLIA_INVALID_STATE,
-        Error::Busy => REPLIA_BUSY,
-        Error::UnsuitableTerminal => REPLIA_UNSUITABLE_TERMINAL,
+        Error::Io(_) => REPLAI_IO,
+        Error::State => REPLAI_INVALID_STATE,
+        Error::Busy => REPLAI_BUSY,
+        Error::UnsuitableTerminal => REPLAI_UNSUITABLE_TERMINAL,
     }
 }
 fn result(r: Result<(), Error>) -> i32 {
-    r.map_or_else(error, |()| REPLIA_OK)
+    r.map_or_else(error, |()| REPLAI_OK)
 }
 fn role(tag: u32) -> Result<Role, i32> {
     match tag {
-        REPLIA_ROLE_DEFAULT => Ok(Role::Default),
-        REPLIA_ROLE_STRONG => Ok(Role::Strong),
-        REPLIA_ROLE_ACCENT => Ok(Role::Accent),
-        REPLIA_ROLE_DIM => Ok(Role::Dim),
-        REPLIA_ROLE_SUCCESS => Ok(Role::Success),
-        REPLIA_ROLE_WARNING => Ok(Role::Warning),
-        REPLIA_ROLE_ERROR => Ok(Role::Error),
-        _ => Err(REPLIA_INVALID_ARGUMENT),
+        REPLAI_ROLE_DEFAULT => Ok(Role::Default),
+        REPLAI_ROLE_STRONG => Ok(Role::Strong),
+        REPLAI_ROLE_ACCENT => Ok(Role::Accent),
+        REPLAI_ROLE_DIM => Ok(Role::Dim),
+        REPLAI_ROLE_SUCCESS => Ok(Role::Success),
+        REPLAI_ROLE_WARNING => Ok(Role::Warning),
+        REPLAI_ROLE_ERROR => Ok(Role::Error),
+        _ => Err(REPLAI_INVALID_ARGUMENT),
     }
 }
 unsafe fn copy_text(s: &str, buffer: *mut u8, capacity: usize, required: *mut usize) -> i32 {
@@ -142,10 +142,10 @@ unsafe fn copy_text(s: &str, buffer: *mut u8, capacity: usize, required: *mut us
         required.write(s.len());
     }
     if buffer.is_null() && capacity == 0 {
-        return REPLIA_OK;
+        return REPLAI_OK;
     }
     if capacity < s.len() {
-        return REPLIA_BUFFER_TOO_SMALL;
+        return REPLAI_BUFFER_TOO_SMALL;
     }
     if !s.is_empty() {
         // SAFETY: caller owns capacity writable bytes; checked sufficient above.
@@ -154,36 +154,36 @@ unsafe fn copy_text(s: &str, buffer: *mut u8, capacity: usize, required: *mut us
             ptr::copy_nonoverlapping(s.as_ptr(), buffer, s.len());
         }
     }
-    REPLIA_OK
+    REPLAI_OK
 }
-unsafe fn event_ready(p: *mut RepliaEvent) -> Result<(), i32> {
+unsafe fn event_ready(p: *mut ReplaiEvent) -> Result<(), i32> {
     // SAFETY: caller supplies an event record under the shared record contract.
     let event = unsafe { record(p)? };
-    if event.kind != REPLIA_EVENT_NONE
+    if event.kind != REPLAI_EVENT_NONE
         || event.status != 0
         || event.text_bytes != 0
         || event.cursor_bytes != 0
         || event.reserved != [0; 2]
     {
-        return Err(REPLIA_INVALID_ARGUMENT);
+        return Err(REPLAI_INVALID_ARGUMENT);
     }
     Ok(())
 }
-unsafe fn event_result(h: &mut Handle, event: Option<Event>, out: *mut RepliaEvent) -> i32 {
+unsafe fn event_result(h: &mut Handle, event: Option<Event>, out: *mut ReplaiEvent) -> i32 {
     let (kind, status) = match event {
-        None => (REPLIA_EVENT_NONE, REPLIA_OK),
+        None => (REPLAI_EVENT_NONE, REPLAI_OK),
         Some(Event::Submitted(text)) => {
             h.submitted = Some(text);
-            (REPLIA_EVENT_SUBMITTED, REPLIA_OK)
+            (REPLAI_EVENT_SUBMITTED, REPLAI_OK)
         }
-        Some(Event::Interrupted) => (REPLIA_EVENT_INTERRUPTED, REPLIA_OK),
-        Some(Event::EndOfInput) => (REPLIA_EVENT_END_OF_INPUT, REPLIA_OK),
-        Some(Event::CompletionRequested) => (REPLIA_EVENT_COMPLETION_REQUESTED, REPLIA_OK),
-        Some(Event::Rejected(e)) => (REPLIA_EVENT_EDIT_REJECTED, edit(e)),
+        Some(Event::Interrupted) => (REPLAI_EVENT_INTERRUPTED, REPLAI_OK),
+        Some(Event::EndOfInput) => (REPLAI_EVENT_END_OF_INPUT, REPLAI_OK),
+        Some(Event::CompletionRequested) => (REPLAI_EVENT_COMPLETION_REQUESTED, REPLAI_OK),
+        Some(Event::Rejected(e)) => (REPLAI_EVENT_EDIT_REJECTED, edit(e)),
     };
-    let value = RepliaEvent {
-        struct_size: mem::size_of::<RepliaEvent>() as u32,
-        abi_version: REPLIA_C_ABI_VERSION,
+    let value = ReplaiEvent {
+        struct_size: mem::size_of::<ReplaiEvent>() as u32,
+        abi_version: REPLAI_C_ABI_VERSION,
         kind,
         status,
         text_bytes: h.interaction.editor().text().len() as u64,
@@ -194,7 +194,7 @@ unsafe fn event_result(h: &mut Handle, event: Option<Event>, out: *mut RepliaEve
     unsafe {
         out.write(value);
     }
-    REPLIA_OK
+    REPLAI_OK
 }
 
 // Each exported entrypoint uses the same panic guard. Unsafe regions only cross
@@ -204,30 +204,30 @@ unsafe fn event_result(h: &mut Handle, event: Option<Event>, out: *mut RepliaEve
 /// # Safety
 /// `version` must be writable aligned u32 storage, or NULL (rejected).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_abi_version(version: *mut u32) -> i32 {
+pub unsafe extern "C" fn replai_abi_version(version: *mut u32) -> i32 {
     guard(|| {
         if let Err(e) = aligned(version) {
             return e;
         }
         // SAFETY: caller owns the validated aligned output storage.
         unsafe {
-            version.write(REPLIA_C_ABI_VERSION);
+            version.write(REPLAI_C_ABI_VERSION);
         }
-        REPLIA_OK
+        REPLAI_OK
     })
 }
 /// Allocate one opaque owner.
 /// # Safety
 /// Record and output follow the installed header's live-storage/disjointness rules.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_create(config: *const RepliaConfig, out: *mut *mut Handle) -> i32 {
+pub unsafe extern "C" fn replai_create(config: *const ReplaiConfig, out: *mut *mut Handle) -> i32 {
     guard(|| {
         if let Err(e) = aligned(out) {
             return e;
         }
         // SAFETY: validated output slot is initialized caller-owned storage.
         if !unsafe { out.read() }.is_null() {
-            return REPLIA_INVALID_ARGUMENT;
+            return REPLAI_INVALID_ARGUMENT;
         }
         // SAFETY: caller supplies the versioned config record; record checks prefix first.
         let c = match unsafe { record(config) } {
@@ -235,12 +235,12 @@ pub unsafe extern "C" fn replia_create(config: *const RepliaConfig, out: *mut *m
             Err(e) => return e,
         };
         if c.reserved != [0; 2] {
-            return REPLIA_INVALID_ARGUMENT;
+            return REPLAI_INVALID_ARGUMENT;
         }
         if c.max_input_bytes > isize::MAX as u64
             || c.history_entries > (isize::MAX as usize / mem::size_of::<String>()) as u64
         {
-            return REPLIA_INVALID_ARGUMENT;
+            return REPLAI_INVALID_ARGUMENT;
         }
         let h = Box::new(Handle {
             interaction: Interaction::new(Editor::new(
@@ -252,18 +252,18 @@ pub unsafe extern "C" fn replia_create(config: *const RepliaConfig, out: *mut *m
             poisoned: false,
         });
         // SAFETY: ownership transfers only this Box to the validated output slot.
-        // replia_destroy is its sole release operation.
+        // replai_destroy is its sole release operation.
         unsafe {
             out.write(Box::into_raw(h));
         }
-        REPLIA_OK
+        REPLAI_OK
     })
 }
 /// Destroy one opaque owner, including a poisoned owner.
 /// # Safety
 /// `handle` is an initialized exclusive slot containing a live allocation from create.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_destroy(handle: *mut *mut Handle) -> i32 {
+pub unsafe extern "C" fn replai_destroy(handle: *mut *mut Handle) -> i32 {
     guard(|| {
         if let Err(e) = aligned(handle) {
             return e;
@@ -287,7 +287,7 @@ pub unsafe extern "C" fn replia_destroy(handle: *mut *mut Handle) -> i32 {
 /// # Safety
 /// Handle and input spans follow the header's live-storage rules for this call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_prompt(
+pub unsafe extern "C" fn replai_prompt(
     handle: *mut Handle,
     label: *const u8,
     label_len: usize,
@@ -300,7 +300,7 @@ pub unsafe extern "C" fn replia_prompt(
         // SAFETY: caller owns a live serialized handle; helper checks detectable misuse.
         let operation = |h: &mut Handle| {
             if h.interaction.is_open() {
-                return REPLIA_INVALID_STATE;
+                return REPLAI_INVALID_STATE;
             }
             // Input references remain within this call; only Prompt's owned strings persist.
             let make = || -> Result<Prompt, i32> {
@@ -318,7 +318,7 @@ pub unsafe extern "C" fn replia_prompt(
             match make() {
                 Ok(p) => {
                     h.prompt = p;
-                    REPLIA_OK
+                    REPLAI_OK
                 }
                 Err(e) => e,
             }
@@ -331,14 +331,14 @@ pub unsafe extern "C" fn replia_prompt(
 /// # Safety
 /// The live serialized handle and both FDs remain valid and unclosed throughout the call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_open(handle: *mut Handle, input_fd: i32, output_fd: i32) -> i32 {
+pub unsafe extern "C" fn replai_open(handle: *mut Handle, input_fd: i32, output_fd: i32) -> i32 {
     guard(|| {
         // SAFETY: fcntl takes integer FDs, touches no caller memory and reports invalid FDs.
         if input_fd < 0 || output_fd < 0 || unsafe { libc::fcntl(input_fd, libc::F_GETFD) } < 0
             // SAFETY: same integer-only validity probe as above.
             || unsafe { libc::fcntl(output_fd, libc::F_GETFD) } < 0
         {
-            return REPLIA_INVALID_ARGUMENT;
+            return REPLAI_INVALID_ARGUMENT;
         }
         // SAFETY: validated FDs are kept live by the caller throughout this call.
         let input = unsafe { BorrowedFd::borrow_raw(input_fd) };
@@ -349,7 +349,7 @@ pub unsafe extern "C" fn replia_open(handle: *mut Handle, input_fd: i32, output_
         {
             Ok(()) => {
                 h.submitted = None;
-                REPLIA_OK
+                REPLAI_OK
             }
             Err(e) => error(e),
         };
@@ -361,7 +361,7 @@ pub unsafe extern "C" fn replia_open(handle: *mut Handle, input_fd: i32, output_
 /// # Safety
 /// The handle must be live and exclusively used for this call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_close(handle: *mut Handle) -> i32 {
+pub unsafe extern "C" fn replai_close(handle: *mut Handle) -> i32 {
     guard(|| {
         if let Err(e) = aligned(handle) {
             return e;
@@ -374,10 +374,10 @@ pub unsafe extern "C" fn replia_close(handle: *mut Handle) -> i32 {
 /// # Safety
 /// Handle and writable initialized event record follow the installed header contract.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_poll(
+pub unsafe extern "C" fn replai_poll(
     handle: *mut Handle,
     timeout_ms: u32,
-    event: *mut RepliaEvent,
+    event: *mut ReplaiEvent,
 ) -> i32 {
     guard(|| {
         // SAFETY: event is initialized readable/writable caller storage.
@@ -400,7 +400,7 @@ pub unsafe extern "C" fn replia_poll(
 /// # Safety
 /// Same handle/event record requirements as poll; never call from a signal handler.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_interrupt(handle: *mut Handle, event: *mut RepliaEvent) -> i32 {
+pub unsafe extern "C" fn replai_interrupt(handle: *mut Handle, event: *mut ReplaiEvent) -> i32 {
     guard(|| {
         // SAFETY: caller provides the initialized event record for validation.
         if let Err(e) = unsafe { event_ready(event) } {
@@ -420,7 +420,7 @@ pub unsafe extern "C" fn replia_interrupt(handle: *mut Handle, event: *mut Repli
 /// # Safety
 /// Handle, initialized outputs and writable buffer are live and mutually disjoint.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_draft_copy(
+pub unsafe extern "C" fn replai_draft_copy(
     handle: *mut Handle,
     buffer: *mut u8,
     capacity: usize,
@@ -437,7 +437,7 @@ pub unsafe extern "C" fn replia_draft_copy(
             // SAFETY: caller outputs are live, writable and disjoint; helper validates sizes first.
             let status =
                 unsafe { copy_text(h.interaction.editor().text(), buffer, capacity, required) };
-            if status == REPLIA_OK || status == REPLIA_BUFFER_TOO_SMALL {
+            if status == REPLAI_OK || status == REPLAI_BUFFER_TOO_SMALL {
                 // SAFETY: aligned cursor output was validated before the handle operation.
                 unsafe {
                     cursor.write(h.interaction.editor().cursor());
@@ -453,7 +453,7 @@ pub unsafe extern "C" fn replia_draft_copy(
 /// # Safety
 /// Same caller buffer/handle contract as draft_copy.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_submitted_copy(
+pub unsafe extern "C" fn replai_submitted_copy(
     handle: *mut Handle,
     buffer: *mut u8,
     capacity: usize,
@@ -464,7 +464,7 @@ pub unsafe extern "C" fn replia_submitted_copy(
         let operation = |h: &mut Handle| match &h.submitted {
             // SAFETY: caller outputs are live, writable and disjoint; helper validates sizes first.
             Some(text) => unsafe { copy_text(text, buffer, capacity, required) },
-            None => REPLIA_INVALID_STATE,
+            None => REPLAI_INVALID_STATE,
         };
         // SAFETY: caller supplies a live, exclusively used handle for this call.
         unsafe { with_handle(handle, operation) }
@@ -474,7 +474,7 @@ pub unsafe extern "C" fn replia_submitted_copy(
 /// # Safety
 /// Handle and readable byte span remain live for this call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_set_draft(
+pub unsafe extern "C" fn replai_set_draft(
     handle: *mut Handle,
     bytes: *const u8,
     length: usize,
@@ -490,7 +490,7 @@ pub unsafe extern "C" fn replia_set_draft(
             match h.interaction.editor_mut() {
                 Ok(editor) => editor
                     .replace(0..editor.text().len(), text)
-                    .map_or_else(edit, |()| REPLIA_OK),
+                    .map_or_else(edit, |()| REPLAI_OK),
                 Err(e) => error(e),
             }
         };
@@ -502,13 +502,13 @@ pub unsafe extern "C" fn replia_set_draft(
 /// # Safety
 /// Handle must be live and serialized.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_clear(handle: *mut Handle) -> i32 {
+pub unsafe extern "C" fn replai_clear(handle: *mut Handle) -> i32 {
     guard(|| {
         // SAFETY: caller owns the live serialized opaque handle.
         let operation = |h: &mut Handle| match h.interaction.editor_mut() {
             Ok(e) => {
                 e.clear();
-                REPLIA_OK
+                REPLAI_OK
             }
             Err(e) => error(e),
         };
@@ -520,7 +520,7 @@ pub unsafe extern "C" fn replia_clear(handle: *mut Handle) -> i32 {
 /// # Safety
 /// Handle and readable byte span follow the common caller contract.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_history_add(
+pub unsafe extern "C" fn replai_history_add(
     handle: *mut Handle,
     bytes: *const u8,
     length: usize,
@@ -534,7 +534,7 @@ pub unsafe extern "C" fn replia_history_add(
                 Err(e) => return e,
             };
             match h.interaction.editor_mut() {
-                Ok(editor) => editor.admit_history(text).map_or_else(edit, |()| REPLIA_OK),
+                Ok(editor) => editor.admit_history(text).map_or_else(edit, |()| REPLAI_OK),
                 Err(e) => error(e),
             }
         };
@@ -546,7 +546,7 @@ pub unsafe extern "C" fn replia_history_add(
 /// # Safety
 /// Handle and readable byte span follow the common caller contract.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_complete(
+pub unsafe extern "C" fn replai_complete(
     handle: *mut Handle,
     start: usize,
     end: usize,
@@ -571,7 +571,7 @@ pub unsafe extern "C" fn replia_complete(
 /// # Safety
 /// Handle and readable byte span follow the common caller contract.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_external_output(
+pub unsafe extern "C" fn replai_external_output(
     handle: *mut Handle,
     tag: u32,
     bytes: *const u8,
@@ -599,7 +599,7 @@ pub unsafe extern "C" fn replia_external_output(
 /// # Safety
 /// Buffer and required-count storage follow the common copy contract.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replia_status_text(
+pub unsafe extern "C" fn replai_status_text(
     status: i32,
     buffer: *mut u8,
     capacity: usize,
@@ -607,22 +607,22 @@ pub unsafe extern "C" fn replia_status_text(
 ) -> i32 {
     guard(|| {
         let text = match status {
-            REPLIA_OK => "success",
-            REPLIA_INVALID_ARGUMENT => "invalid argument",
-            REPLIA_INVALID_UTF8 => "invalid UTF-8",
-            REPLIA_INVALID_RANGE => "invalid grapheme range",
-            REPLIA_CAPACITY => "capacity exceeded",
-            REPLIA_INVALID_STATE => "invalid lifecycle state",
-            REPLIA_UNSUITABLE_TERMINAL => "unsuitable terminal pair",
-            REPLIA_IO => "terminal I/O or restoration failure",
-            REPLIA_BUFFER_TOO_SMALL => "buffer too small",
-            REPLIA_ABI_MISMATCH => "ABI size or version mismatch",
-            REPLIA_BUSY => "terminal already owned",
-            REPLIA_INTERNAL => "internal panic contained; close or destroy",
-            REPLIA_INVALID_TEXT => "unsupported control text",
-            REPLIA_HISTORY_DISABLED => "history disabled",
-            REPLIA_INVALID_SEQUENCE => "invalid terminal sequence",
-            _ => return REPLIA_INVALID_ARGUMENT,
+            REPLAI_OK => "success",
+            REPLAI_INVALID_ARGUMENT => "invalid argument",
+            REPLAI_INVALID_UTF8 => "invalid UTF-8",
+            REPLAI_INVALID_RANGE => "invalid grapheme range",
+            REPLAI_CAPACITY => "capacity exceeded",
+            REPLAI_INVALID_STATE => "invalid lifecycle state",
+            REPLAI_UNSUITABLE_TERMINAL => "unsuitable terminal pair",
+            REPLAI_IO => "terminal I/O or restoration failure",
+            REPLAI_BUFFER_TOO_SMALL => "buffer too small",
+            REPLAI_ABI_MISMATCH => "ABI size or version mismatch",
+            REPLAI_BUSY => "terminal already owned",
+            REPLAI_INTERNAL => "internal panic contained; close or destroy",
+            REPLAI_INVALID_TEXT => "unsupported control text",
+            REPLAI_HISTORY_DISABLED => "history disabled",
+            REPLAI_INVALID_SEQUENCE => "invalid terminal sequence",
+            _ => return REPLAI_INVALID_ARGUMENT,
         };
         // SAFETY: caller provides writable disjoint output spans per copy contract.
         unsafe { copy_text(text, buffer, capacity, required) }
@@ -637,7 +637,7 @@ mod tests {
     fn panic_guard_contains_unwinding_and_a_panicking_payload_destructor() {
         assert_eq!(
             guard(|| panic!("unexpected internal failure")),
-            REPLIA_INTERNAL
+            REPLAI_INTERNAL
         );
         struct Payload;
         impl Drop for Payload {
@@ -645,7 +645,7 @@ mod tests {
                 panic!("payload destructor");
             }
         }
-        assert_eq!(guard(|| std::panic::panic_any(Payload)), REPLIA_INTERNAL);
-        assert_eq!(guard(|| REPLIA_OK), REPLIA_OK);
+        assert_eq!(guard(|| std::panic::panic_any(Payload)), REPLAI_INTERNAL);
+        assert_eq!(guard(|| REPLAI_OK), REPLAI_OK);
     }
 }

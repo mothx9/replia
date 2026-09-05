@@ -1,5 +1,5 @@
 //! A neutral host loop: echo input, complete a small vocabulary, optionally emit a notice.
-use replia::{Editor, Event, Interaction, Prompt, Role};
+use replai::{Editor, Event, Interaction, Prompt, Role};
 use std::time::{Duration, Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

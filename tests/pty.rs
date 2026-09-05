@@ -1,6 +1,6 @@
 //! Real Linux PTYs with an independent VT terminal-state oracle.
 #![cfg(target_os = "linux")]
-use replia::{EditError, Editor, Error, Event, Interaction, Prompt, Role};
+use replai::{EditError, Editor, Error, Event, Interaction, Prompt, Role};
 use rustix::{
     fs::{Mode, OFlags, fcntl_getfl, fcntl_setfl, open},
     io::{read, write},
@@ -385,7 +385,7 @@ fn non_tty_and_mismatched_terminals_fail_before_mutation() {
 #[test]
 fn pty_reference_child() {
     use std::io::Write;
-    let Ok(_case) = std::env::var("REPLIA_TEST_REFERENCE") else {
+    let Ok(_case) = std::env::var("REPLAI_TEST_REFERENCE") else {
         return;
     };
     let mut editor = Editor::new(1024, 2);
@@ -462,7 +462,7 @@ fn pty_reference_records_match_text_cursor_color_and_native_background() {
                 "--nocapture",
                 "--test-threads=1",
             ])
-            .env("REPLIA_TEST_REFERENCE", case)
+            .env("REPLAI_TEST_REFERENCE", case)
             .env_remove("NO_COLOR")
             .env(
                 "TERM",

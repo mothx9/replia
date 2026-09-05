@@ -1,6 +1,6 @@
 # C boundary — pre-release ABI 1
 
-REPLIA exposes one Linux-qualified C ABI through the separate `replia-c`
+REPLAI exposes one Linux-qualified C ABI through the separate `replai-c`
 package. ABI 1 identifies an exact header/binary contract; it is not a promise
 of long-term ABI or SemVer stability. No release has been published.
 
@@ -11,53 +11,53 @@ requirements: C11 compiler and standard headers; pkg-config is convenient.
 The C consumer does not need Cargo, Rust sources or private headers.
 
 ```sh
-cargo build --locked --release -p replia-c
-python3 tools/stage_c.py --prefix /tmp/replia-install
+cargo build --locked --release -p replai-c
+python3 tools/stage_c.py --prefix /tmp/replai-install
 ```
 
 The prefix must be absent or empty. Installation writes only that prefix:
 
 ```text
-include/replia.h
-lib/libreplia_c.a
-lib/libreplia_c.so
-lib/pkgconfig/replia.pc
-share/licenses/replia/LICENSE
+include/replai.h
+lib/libreplai_c.a
+lib/libreplai_c.so
+lib/pkgconfig/replai.pc
+share/licenses/replai/LICENSE
 ```
 
 Copy `examples/c/demo.c` into an unrelated build directory, then:
 
 ```sh
-export PKG_CONFIG_PATH=/tmp/replia-install/lib/pkgconfig
+export PKG_CONFIG_PATH=/tmp/replai-install/lib/pkgconfig
 cc -std=c11 -Wall -Wextra -Wpedantic -Werror demo.c \
-  $(pkg-config --cflags --libs replia) \
-  -Wl,-rpath,/tmp/replia-install/lib -o demo
+  $(pkg-config --cflags --libs replai) \
+  -Wl,-rpath,/tmp/replai-install/lib -o demo
 ./demo
 ```
 
-For static REPLIA linkage use the archive explicitly (system dependencies may
+For static REPLAI linkage use the archive explicitly (system dependencies may
 remain shared):
 
 ```sh
 cc -std=c11 -Wall -Wextra -Wpedantic -Werror demo.c \
-  $(pkg-config --cflags replia) /tmp/replia-install/lib/libreplia_c.a \
-  $(pkg-config --libs-only-other --libs-only-l --static replia | sed 's/-lreplia_c//g') \
+  $(pkg-config --cflags replai) /tmp/replai-install/lib/libreplai_c.a \
+  $(pkg-config --libs-only-other --libs-only-l --static replai | sed 's/-lreplai_c//g') \
   -o demo-static
 ```
 
 The `.pc` file derives paths from its installed location. It contains no author
 workstation paths. Shared consumers must arrange loader search explicitly;
-qualification verifies `ldd` resolves the staged `.so`. Mixing another REPLIA
+qualification verifies `ldd` resolves the staged `.so`. Mixing another REPLAI
 copy into the same process is unsupported: the active-terminal lease is per
 linked library image, not an inter-library or inter-process lock.
 
 ## Ownership and lifecycle
 
-Initialize `replia_config` to zero, set `struct_size = sizeof(config)`,
-`abi_version = REPLIA_C_ABI_VERSION`, the byte capacity and history entry bound.
-Compare `replia_abi_version(&version)` with the header macro before creation.
-Pass an initialized NULL handle slot to `replia_create`. The library owns the
-resulting allocation. `replia_destroy(&handle)` is its only release operation;
+Initialize `replai_config` to zero, set `struct_size = sizeof(config)`,
+`abi_version = REPLAI_C_ABI_VERSION`, the byte capacity and history entry bound.
+Compare `replai_abi_version(&version)` with the header macro before creation.
+Pass an initialized NULL handle slot to `replai_create`. The library owns the
+resulting allocation. `replai_destroy(&handle)` is its only release operation;
 it closes any active terminal and sets the slot to NULL, including when close
 reports an I/O failure. A second destroy of NULL returns INVALID_ARGUMENT.
 
@@ -117,7 +117,7 @@ including newlines. No separate text-free function exists or is needed.
 
 ## Events and errors
 
-All functions return `replia_status` (`int32_t`). Event outputs are meaningful
+All functions return `replai_status` (`int32_t`). Event outputs are meaningful
 only on OK. On a failed poll/interrupt the caller's event record stays unchanged.
 
 | Event kind | Value | Host action / terminal state |
@@ -153,7 +153,7 @@ at most one input byte. Host scheduling controls latency and output timing.
 | HISTORY_DISABLED | 13 | Host configured no history entries |
 | INVALID_SEQUENCE | 14 | Rejected terminal input sequence |
 
-`replia_status_text` copies a generic diagnostic using the same buffer contract;
+`replai_status_text` copies a generic diagnostic using the same buffer contract;
 unknown codes return INVALID_ARGUMENT. Human messages are not machine tags. ABI 1
 does not retain per-handle errno or OS-specific diagnostic strings.
 
@@ -167,16 +167,16 @@ and the host should close/destroy before deciding whether reopening is safe.
 ## Completion, history and external output
 
 Tab yields COMPLETION_REQUESTED. Read draft and byte cursor, discover candidates
-outside the library, then call `replia_complete(start, end, bytes, length)` for a
+outside the library, then call `replai_complete(start, end, bytes, length)` for a
 host-selected replacement. No callback or registry exists. No candidates, multiple
 candidates without a choice, or host lookup failure require no mutation.
 Invalid UTF-8, capacity and grapheme-splitting ranges fail before redraw.
 
-`replia_history_add` admits one entry while closed; the host owns persistence,
+`replai_history_add` admits one entry while closed; the host owns persistence,
 privacy, deduplication and admission. Up/Down use the same Rust history mechanism,
 including restoring the pre-history draft and cursor. History zero is allowed.
 
-`replia_external_output(role, bytes, length)` delegates to the single Rust
+`replai_external_output(role, bytes, length)` delegates to the single Rust
 renderer. Roles are DEFAULT=0, STRONG=1, ACCENT=2, DIM=3, SUCCESS=4, WARNING=5,
 ERROR=6. The transaction validates text, suspends the visible editing surface,
 writes a complete host text line, then redraws exact draft/cursor. It is a
@@ -192,9 +192,9 @@ can refuse restoration; IO reports that limit. Drop is best effort and does not
 panic or call process exit. No library can clean up after SIGKILL or process abort.
 
 No signal handler, mask, background thread or cancellation policy is installed.
-Raw-mode Ctrl-C is a decoded byte; explicit `replia_interrupt` supports a host
+Raw-mode Ctrl-C is a decoded byte; explicit `replai_interrupt` supports a host
 signal policy. Resize uses dimension polling. Signal handlers must not call
-REPLIA: these functions are not async-signal-safe. Notify the serialized host loop.
+REPLAI: these functions are not async-signal-safe. Notify the serialized host loop.
 
 Every exported function uses the same `catch_unwind` guard. The binding refuses
 panic=abort builds. A contained operational panic returns INTERNAL, poisons the
@@ -210,7 +210,7 @@ failure or foreign undefined behavior cannot be converted into safe Rust unwind.
 `api/c-abi.json` owns the narrow ABI declarations. `tools/generate_abi.py --check`
 checks generated C/Rust records, numeric constants, probes and Rust function
 pointer signature assertions. The real C and Rust probes compare size, alignment
-and every field offset/tag. The C binding imports only public `replia` items.
+and every field offset/tag. The C binding imports only public `replai` items.
 Only its `src/lib.rs` dereferences C pointers, constructs borrowed FDs or manages
 the opaque allocation. The implementation crate still forbids unsafe code.
 

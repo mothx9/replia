@@ -84,20 +84,20 @@ class Qualification:
         self.run(['python3', 'tools/generate_abi.py', '--check'], 'header-drift', isolated=False)
         # Metadata audits the complete locked graph, including target-specific crates.
         self.run(['cargo', 'fetch', '--locked'], 'fetch-locked-graph', isolated=False)
-        self.run(['cargo', 'build', '--locked', '--release', '-p', 'replia-c'], 'release-binding', isolated=False)
-        self.run(['cargo', 'build', '--locked', '--release', '-p', 'replia', '--example', 'terminal-state'], 'vt-oracle', isolated=False)
-        self.run(['cargo', 'build', '--locked', '--release', '-p', 'replia-c', '--example', 'layout'], 'rust-layout-build', isolated=False)
+        self.run(['cargo', 'build', '--locked', '--release', '-p', 'replai-c'], 'release-binding', isolated=False)
+        self.run(['cargo', 'build', '--locked', '--release', '-p', 'replai', '--example', 'terminal-state'], 'vt-oracle', isolated=False)
+        self.run(['cargo', 'build', '--locked', '--release', '-p', 'replai-c', '--example', 'layout'], 'rust-layout-build', isolated=False)
         self.run(['python3', 'tools/stage_c.py', '--prefix', self.prefix], 'stage', isolated=False)
         for source in ['examples/c/demo.c', 'tests/c/contracts.c', 'tests/c/layout.c', 'tests/fixtures/presentation.tsv']:
             shutil.copy2(ROOT / source, self.consumer / Path(source).name)
         for name in ['layout', 'terminal-state']:
             shutil.copy2(ROOT / 'target/release/examples' / name, self.consumer / ('rust-' + name))
         for suffix in ['c', 'cpp']:
-            (self.consumer / ('header.' + suffix)).write_text('#include <replia.h>\n')
-        (self.consumer / 'smoke.cpp').write_text('#include <replia.h>\nint main() { uint32_t v = 0; return replia_abi_version(&v) != REPLIA_OK || v != REPLIA_C_ABI_VERSION; }\n')
+            (self.consumer / ('header.' + suffix)).write_text('#include <replai.h>\n')
+        (self.consumer / 'smoke.cpp').write_text('#include <replai.h>\nint main() { uint32_t v = 0; return replai_abi_version(&v) != REPLAI_OK || v != REPLAI_C_ABI_VERSION; }\n')
         self.run(['cc', '--version'], 'compiler')
         self.run(['c++', '--version'], 'cpp-compiler')
-        cflags = shlex.split(self.run(['pkg-config', '--cflags', 'replia'], 'pkg-cflags'))
+        cflags = shlex.split(self.run(['pkg-config', '--cflags', 'replai'], 'pkg-cflags'))
         flags = ['-Wall', '-Wextra', '-Wpedantic', '-Werror']
         for compiler, standard, source in [('cc', 'c11', 'header.c'), ('c++', 'c++17', 'header.cpp')]:
             output = self.run([compiler, '-std=' + standard, *flags, *cflags, '-c', source, '-o', source + '.o'], 'header-' + standard)
@@ -108,18 +108,18 @@ class Qualification:
         assert c == rust, 'C/Rust record or constant layout mismatch'
         print(c + 'ABI layout C == Rust', flush=True)
         self.run(['cc', '-std=c11', *cflags, '-M', 'demo.c'], 'resolved-header')
-        assert str(self.prefix / 'lib/pkgconfig/../../include/replia.h') in (self.root / 'resolved-header.log').read_text()
+        assert str(self.prefix / 'lib/pkgconfig/../../include/replai.h') in (self.root / 'resolved-header.log').read_text()
         for mode in ['shared', 'static']:
-            pkg = ['pkg-config', '--cflags', '--libs', *(['--static'] if mode == 'static' else []), 'replia']
+            pkg = ['pkg-config', '--cflags', '--libs', *(['--static'] if mode == 'static' else []), 'replai']
             link = shlex.split(self.run(pkg, 'pkg-' + mode))
             if mode == 'static':
-                link = [str(self.prefix / 'lib/libreplia_c.a') if arg == '-lreplia_c' else arg for arg in link]
+                link = [str(self.prefix / 'lib/libreplai_c.a') if arg == '-lreplai_c' else arg for arg in link]
             else:
                 link.append('-Wl,-rpath,' + str(self.prefix / 'lib'))
             for source in ['demo.c', 'contracts.c']:
                 output = self.run(['cc', '-std=c11', *flags, source, *link, '-o', Path(source).stem + '-' + mode], 'build-' + Path(source).stem + '-' + mode)
                 assert output == '', 'consumer compiler emitted diagnostics'
-        link = shlex.split(self.run(['pkg-config', '--cflags', '--libs', 'replia'], 'pkg-cpp'))
+        link = shlex.split(self.run(['pkg-config', '--cflags', '--libs', 'replai'], 'pkg-cpp'))
         self.run(['c++', '-std=c++17', *flags, 'smoke.cpp', *link, '-Wl,-rpath,' + str(self.prefix / 'lib'), '-o', 'cpp-smoke'], 'cpp-link')
         self.run(['./cpp-smoke'], 'cpp-run')
         print(f'Installed consumer compiled with repository reads denied; PREFIX={self.prefix}', flush=True)
@@ -160,19 +160,19 @@ class Qualification:
         assert manifest['lints']['rust']['unsafe_code'] == 'forbid'
         metadata = json.loads(self.run(['cargo', 'metadata', '--locked', '--offline', '--format-version', '1'], 'dependency-audit', isolated=False))
         local = {p['name'] for p in metadata['packages'] if p['source'] is None}
-        assert local == {'replia', 'replia-c'}, local
+        assert local == {'replai', 'replai-c'}, local
         assert all(p['source'] is None or p['source'].startswith('registry+') for p in metadata['packages'])
-        binding = next(p for p in metadata['packages'] if p['name'] == 'replia-c')
-        assert {d['name'] for d in binding['dependencies']} == {'replia', 'libc'}
-        observed = self.run(['nm', '-D', '--defined-only', self.prefix / 'lib/libreplia_c.so'], 'symbols')
+        binding = next(p for p in metadata['packages'] if p['name'] == 'replai-c')
+        assert {d['name'] for d in binding['dependencies']} == {'replai', 'libc'}
+        observed = self.run(['nm', '-D', '--defined-only', self.prefix / 'lib/libreplai_c.so'], 'symbols')
         schema = json.loads((ROOT / 'api/c-abi.json').read_text())
         expected = {f['name'] for f in schema['functions']}
         assert {line.split()[-1] for line in observed.splitlines()} == expected, observed
         loader = self.run(['ldd', './demo-shared'], 'loader-shared')
-        assert str(self.prefix / 'lib/libreplia_c.so') in loader, loader
+        assert str(self.prefix / 'lib/libreplai_c.so') in loader, loader
         static = self.run(['ldd', './demo-static'], 'loader-static')
-        assert 'libreplia_c' not in static, static
-        pc = (self.prefix / 'lib/pkgconfig/replia.pc').read_text()
+        assert 'libreplai_c' not in static, static
+        pc = (self.prefix / 'lib/pkgconfig/replai.pc').read_text()
         assert '/home/' not in pc and str(ROOT) not in pc and str(self.root) not in pc
         print(loader + 'Namespace, staged loader resolution, metadata isolation: PASS', flush=True)
 
@@ -182,7 +182,7 @@ def main():
     parser.add_argument('--work', type=Path, help='fresh persistent evidence directory')
     parser.add_argument('--phase', choices=['all', 'prepare', 'static', 'shared', 'memory', 'audit'], default='all')
     args = parser.parse_args()
-    root = args.work or Path(tempfile.mkdtemp(prefix='replia-c-qualification-'))
+    root = args.work or Path(tempfile.mkdtemp(prefix='replai-c-qualification-'))
     root.mkdir(parents=True, exist_ok=True)
     q = Qualification(root)
     for phase in (['prepare', 'static', 'shared', 'memory', 'audit'] if args.phase == 'all' else [args.phase]):

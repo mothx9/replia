@@ -1,8 +1,12 @@
 # Baseline evidence
 
+Project names in this historical record use the current REPLAI spelling.
+Original names and ephemeral evidence paths remain available in Git history;
+commit identities and recorded measurements are unchanged by the rename.
+
 The R0 sections below are historical. R1 qualification is recorded at the end.
 
-Wave: `REPLIA.RECONSTRUCTION.BASELINE.0`. Date: 2026-09-05.
+Wave: `REPLAI.RECONSTRUCTION.BASELINE.0`. Date: 2026-09-05.
 This record covers the foundation before its genesis commit. Git and the final
 delivery report own the resulting commit/tree and publication status; this
 file does not attempt to contain the hash of its own commit. The publication
@@ -10,17 +14,17 @@ correction below was recorded after genesis at the owner's explicit request.
 
 ## Environment and creation
 
-The canonical local path `/home/dgmothx/lab/replia` was absent. Authenticated
-GitHub lookup reported that `yailabs/replia` did not exist, including a second
+The canonical local path `/home/dgmothx/lab/replai` was absent. Authenticated
+GitHub lookup reported that `yailabs/replai` did not exist, including a second
 check before publication preparation. A new directory was created with
 `mkdir`, followed by `git init -b master`. No repository template, fork, clone,
 subtree, copied Git directory or donor source import was used.
 
 During publication the owner corrected the destination to the personal
-profile. After verifying `mothx9/replia` was absent, the existing independent
+profile. After verifying `mothx9/replai` was absent, the existing independent
 repository was transferred to that account. GitHub confirmed public ownership
 by `mothx9`, default branch `master`, and the same genesis commit. The canonical
-remote is now **https://github.com/mothx9/replia**. A subsequent ordinary commit
+remote is now **https://github.com/mothx9/replai**. A subsequent ordinary commit
 updates the package URL and this provenance record; history was not rewritten.
 
 Rust was initially absent from PATH. The official rustup installer installed
@@ -44,7 +48,7 @@ identifies the installed release.
 
 ## Authoritative checks
 
-Working directory: `/home/dgmothx/lab/replia`. Environment:
+Working directory: `/home/dgmothx/lab/replai`. Environment:
 `CARGO_NET_OFFLINE=true`, `RUSTFLAGS='-D warnings'`,
 `RUSTDOCFLAGS='-D warnings'`; standard stable Cargo binaries in PATH.
 
@@ -77,14 +81,14 @@ release was created or published.
 
 `cargo metadata --format-version 1 --locked --offline` reports one workspace
 member/package, no dependencies, no features and no custom build target. The
-only library target is `replia`; the other target is the foundation test.
+only library target is `replai`; the other target is the foundation test.
 `publish = false` and `build = false` are explicit manifest policy. Cargo.lock
 contains one package. There are no exported Rust items, runtime environment
 reads, examples, native links, headers, optional features or build scripts.
 Manual review covered all those surfaces and the public documentation.
 
 The complete source tree was copied without `.git` or `target` to
-`/tmp/replia-isolated-h6838tez/replia`. A fresh Cargo home and target directory
+`/tmp/replai-isolated-h6838tez/replai`. A fresh Cargo home and target directory
 were used. A Linux Landlock read/execute restriction allowed only that
 temporary root, the Rust toolchain and system directories. Reads of the
 original crate and both external source snapshots were explicitly rejected
@@ -94,7 +98,7 @@ The source snapshots remained on disk for archaeology but were inaccessible
 to the compiler/test process. No donor path had to be renamed or removed.
 
 Local audit artifacts (outside Git, ephemeral):
-`/tmp/replia-r0-3mthawvf/local-checks.json`, `isolation.py`, `isolation.log`.
+`/tmp/replai-r0-3mthawvf/local-checks.json`, `isolation.py`, `isolation.log`.
 The successful isolated run uses a private `TMPDIR` and permits file renames
 within allowed trees; initial sandbox probes without those settings failed
 before this successful run. User/mount namespace and container probes were
@@ -115,11 +119,11 @@ source classification and read-only consumer inspection are documented in
 
 ## R1 kernel qualification
 
-Wave: `REPLIA.TERMINAL.EDITOR.KERNEL.0`, 2026-09-05. Started on clean `master`
+Wave: `REPLAI.TERMINAL.EDITOR.KERNEL.0`, 2026-09-05. Started on clean `master`
 at `cabffdf8c7c046857d3f4d8a4ad91f81c255824b`, tree
 `df4b7ec4e269d0387ce0c04e36a9b6d00ca983d1`; continued on that branch without
 reset, worktree or history rewrite. The personal public remote remains
-`https://github.com/mothx9/replia`. The resulting commit/tree are owned by Git
+`https://github.com/mothx9/replai`. The resulting commit/tree are owned by Git
 and the delivery report, not a self-referential hash in this document.
 
 The observed donor and planned baseline are recorded in [archaeology](archaeology.md).
@@ -181,7 +185,7 @@ environment reads and package inventory were manually audited. The only library
 environment variables are `NO_COLOR` and `TERM`. Existing MIT attribution remains.
 
 All five Cargo commands also passed in
-`/tmp/replia-r1-isolated-ve3ssd8i/replia`, a fresh source copy and target directory.
+`/tmp/replai-r1-isolated-ve3ssd8i/replai`, a fresh source copy and target directory.
 A private Cargo home held only a copied registry cache. Linux Landlock denied
 read/execute access to source outside the copied crate, dependencies, toolchain
 and system paths. Access probes explicitly returned `PermissionError` for the
@@ -190,7 +194,7 @@ before offline compilation and all PTY tests ran. Neither source archive was
 renamed, removed or changed. This proves the build and tests can operate when
 both application source trees are inaccessible.
 
-Local ephemeral evidence: `/tmp/replia-r1-37brrbog/checks.json`, `isolation.py`,
+Local ephemeral evidence: `/tmp/replai-r1-37brrbog/checks.json`, `isolation.py`,
 `isolation.log`, `donor.json`, `presentation_probe.c`, `demo-pty.bin`. Committed
 tests and byte records carry the reproducible contracts; these temporary audit
 files are not build inputs. CI fetches the locked registry graph, runs all six
@@ -209,7 +213,7 @@ no release published and no R2 ABI work begun.
 R2 began on clean `master`, HEAD
 `fb1600ba75cff2816eccc39b17a47e8913bc10cb`, tree
 `b5ecbdfd6d6e473154a4b14710df2ff901044968`, equal to `origin/master` at
-`mothx9/replia`. No alternate branch/worktree or history rewrite was used.
+`mothx9/replai`. No alternate branch/worktree or history rewrite was used.
 The R1 presentation oracle remains `3a6520945a5c103365178f48104f0ccdb5154624`.
 The donor was observed at `5b95ee82eee394581521d106c7b1ec479d472448` initially
 and `3f4a1c182d35e5a0e163adb81008ae7a366efcc6` during final reconciliation.

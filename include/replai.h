@@ -9,56 +9,56 @@
  * Reserved fields must be zero. Struct size/version must match exactly.
  * INTERNAL means close/destroy only. No call is async-signal-safe.
  */
-#ifndef REPLIA_H
-#define REPLIA_H
+#ifndef REPLAI_H
+#define REPLAI_H
 #include <stddef.h>
 #include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct replia_handle replia_handle;
-typedef int32_t replia_status;
-typedef uint32_t replia_event_kind;
-typedef uint32_t replia_style_role;
-#define REPLIA_C_ABI_VERSION 1
-#define REPLIA_OK 0
-#define REPLIA_INVALID_ARGUMENT 1
-#define REPLIA_INVALID_UTF8 2
-#define REPLIA_INVALID_RANGE 3
-#define REPLIA_CAPACITY 4
-#define REPLIA_INVALID_STATE 5
-#define REPLIA_UNSUITABLE_TERMINAL 6
-#define REPLIA_IO 7
-#define REPLIA_BUFFER_TOO_SMALL 8
-#define REPLIA_ABI_MISMATCH 9
-#define REPLIA_BUSY 10
-#define REPLIA_INTERNAL 11
-#define REPLIA_INVALID_TEXT 12
-#define REPLIA_HISTORY_DISABLED 13
-#define REPLIA_INVALID_SEQUENCE 14
-#define REPLIA_EVENT_NONE 0
-#define REPLIA_EVENT_SUBMITTED 1
-#define REPLIA_EVENT_INTERRUPTED 2
-#define REPLIA_EVENT_END_OF_INPUT 3
-#define REPLIA_EVENT_COMPLETION_REQUESTED 4
-#define REPLIA_EVENT_EDIT_REJECTED 5
-#define REPLIA_ROLE_DEFAULT 0
-#define REPLIA_ROLE_STRONG 1
-#define REPLIA_ROLE_ACCENT 2
-#define REPLIA_ROLE_DIM 3
-#define REPLIA_ROLE_SUCCESS 4
-#define REPLIA_ROLE_WARNING 5
-#define REPLIA_ROLE_ERROR 6
+typedef struct replai_handle replai_handle;
+typedef int32_t replai_status;
+typedef uint32_t replai_event_kind;
+typedef uint32_t replai_style_role;
+#define REPLAI_C_ABI_VERSION 1
+#define REPLAI_OK 0
+#define REPLAI_INVALID_ARGUMENT 1
+#define REPLAI_INVALID_UTF8 2
+#define REPLAI_INVALID_RANGE 3
+#define REPLAI_CAPACITY 4
+#define REPLAI_INVALID_STATE 5
+#define REPLAI_UNSUITABLE_TERMINAL 6
+#define REPLAI_IO 7
+#define REPLAI_BUFFER_TOO_SMALL 8
+#define REPLAI_ABI_MISMATCH 9
+#define REPLAI_BUSY 10
+#define REPLAI_INTERNAL 11
+#define REPLAI_INVALID_TEXT 12
+#define REPLAI_HISTORY_DISABLED 13
+#define REPLAI_INVALID_SEQUENCE 14
+#define REPLAI_EVENT_NONE 0
+#define REPLAI_EVENT_SUBMITTED 1
+#define REPLAI_EVENT_INTERRUPTED 2
+#define REPLAI_EVENT_END_OF_INPUT 3
+#define REPLAI_EVENT_COMPLETION_REQUESTED 4
+#define REPLAI_EVENT_EDIT_REJECTED 5
+#define REPLAI_ROLE_DEFAULT 0
+#define REPLAI_ROLE_STRONG 1
+#define REPLAI_ROLE_ACCENT 2
+#define REPLAI_ROLE_DIM 3
+#define REPLAI_ROLE_SUCCESS 4
+#define REPLAI_ROLE_WARNING 5
+#define REPLAI_ROLE_ERROR 6
 /* Creation limits. Zero-initialize, then set struct_size, abi_version and desired limits. */
-typedef struct replia_config {
+typedef struct replai_config {
     uint32_t struct_size;
     uint32_t abi_version;
     uint64_t max_input_bytes;
     uint64_t history_entries;
     uint64_t reserved[2];
-} replia_config;
+} replai_config;
 /* Poll output. Before EVERY poll/interrupt: zero-initialize and set struct_size and abi_version. */
-typedef struct replia_event {
+typedef struct replai_event {
     uint32_t struct_size;
     uint32_t abi_version;
     uint32_t kind;
@@ -66,39 +66,39 @@ typedef struct replia_event {
     uint64_t text_bytes;
     uint64_t cursor_bytes;
     uint64_t reserved[2];
-} replia_event;
+} replai_event;
 /* Write the exact runtime ABI identity. */
-replia_status replia_abi_version(uint32_t * version);
+replai_status replai_abi_version(uint32_t * version);
 /* Create one owned opaque handle. *out must initially be NULL. Failures leave it unchanged. */
-replia_status replia_create(const replia_config * config, replia_handle * * out);
+replai_status replai_create(const replai_config * config, replai_handle * * out);
 /* Close and release *handle, then set it to NULL, including on cleanup error. NULL is invalid. */
-replia_status replia_destroy(replia_handle * * handle);
+replai_status replai_destroy(replai_handle * * handle);
 /* Configure a closed interaction atomically. All three fields are literal UTF-8; continuation is explicit. */
-replia_status replia_prompt(replia_handle * handle, const uint8_t * label, size_t label_len, const uint8_t * suffix, size_t suffix_len, const uint8_t * continuation, size_t continuation_len);
+replai_status replai_prompt(replai_handle * handle, const uint8_t * label, size_t label_len, const uint8_t * suffix, size_t suffix_len, const uint8_t * continuation, size_t continuation_len);
 /* Borrow caller FDs for this call; own duplicates until terminal outcome/close/destroy. Requires closed state. */
-replia_status replia_open(replia_handle * handle, int32_t input_fd, int32_t output_fd);
+replai_status replai_open(replai_handle * handle, int32_t input_fd, int32_t output_fd);
 /* Restore/release terminal duplicates; retain editor/history. Idempotent, including before open. */
-replia_status replia_close(replia_handle * handle);
+replai_status replai_close(replai_handle * handle);
 /* Poll one byte/tick, at most 100 ms. Return OK with event NONE for no event. Validate event before consuming input. */
-replia_status replia_poll(replia_handle * handle, uint32_t timeout_ms, replia_event * event);
+replai_status replai_poll(replai_handle * handle, uint32_t timeout_ms, replai_event * event);
 /* Deliver a host-observed interrupt and close. Ordinary control flow only; not signal-handler safe. */
-replia_status replia_interrupt(replia_handle * handle, replia_event * event);
+replai_status replai_interrupt(replai_handle * handle, replai_event * event);
 /* Copy exact UTF-8, no NUL terminator. NULL/0 queries successfully. Too-small writes only required/cursor. */
-replia_status replia_draft_copy(replia_handle * handle, uint8_t * buffer, size_t capacity, size_t * required, size_t * cursor);
+replai_status replai_draft_copy(replai_handle * handle, uint8_t * buffer, size_t capacity, size_t * required, size_t * cursor);
 /* Copy the last submission until next successful open. No submission: INVALID_STATE. Same copy rules as draft_copy. */
-replia_status replia_submitted_copy(replia_handle * handle, uint8_t * buffer, size_t capacity, size_t * required);
+replai_status replai_submitted_copy(replai_handle * handle, uint8_t * buffer, size_t capacity, size_t * required);
 /* Replace the entire closed draft atomically; cursor moves to end. History and last submission are retained. */
-replia_status replia_set_draft(replia_handle * handle, const uint8_t * text, size_t length);
+replai_status replai_set_draft(replai_handle * handle, const uint8_t * text, size_t length);
 /* Clear closed draft/navigation, retaining admitted history and last submission. */
-replia_status replia_clear(replia_handle * handle);
+replai_status replai_clear(replai_handle * handle);
 /* Explicit host admission while closed. Oldest entry evicted at configured capacity; no deduplication. */
-replia_status replia_history_add(replia_handle * handle, const uint8_t * text, size_t length);
+replai_status replai_history_add(replai_handle * handle, const uint8_t * text, size_t length);
 /* Replace a grapheme-aligned byte range while open. Validation failure leaves draft/display unchanged. */
-replia_status replia_complete(replia_handle * handle, size_t start, size_t end, const uint8_t * text, size_t length);
+replai_status replai_complete(replai_handle * handle, size_t start, size_t end, const uint8_t * text, size_t length);
 /* Write safe UTF-8 with one generic role, then restore draft/cursor. Reject arbitrary control/ANSI data. */
-replia_status replia_external_output(replia_handle * handle, uint32_t role, const uint8_t * text, size_t length);
+replai_status replai_external_output(replai_handle * handle, uint32_t role, const uint8_t * text, size_t length);
 /* Copy a static diagnostic by status using caller storage; no NUL terminator or library text allocation crosses C. */
-replia_status replia_status_text(int32_t status, uint8_t * buffer, size_t capacity, size_t * required);
+replai_status replai_status_text(int32_t status, uint8_t * buffer, size_t capacity, size_t * required);
 #ifdef __cplusplus
 }
 #endif

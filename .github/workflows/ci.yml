@@ -37,7 +37,7 @@ jobs:
       - name: Rust core and public boundary
         run: cargo test --workspace --lib --test core --test foundation
       - name: Rust PTY behavior
-        run: cargo test -p replia --test pty
+        run: cargo test -p replai --test pty
       - name: Rust release regressions
         run: cargo test --workspace --release
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -65,15 +65,15 @@ jobs:
       - name: Install native qualification tools
         run: sudo apt-get update && sudo apt-get install -y valgrind pkg-config g++
       - name: Release C ABI, staging, layout and C11/C++17 headers
-        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase prepare
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replai-native" --phase prepare
       - name: External static C consumer, misuse, descriptors and PTY behavior
-        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase static
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replai-native" --phase static
       - name: External shared C consumer, misuse, descriptors and PTY behavior
-        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase shared
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replai-native" --phase shared
       - name: Memory and leak qualification with Valgrind
-        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase memory
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replai-native" --phase memory
       - name: Symbols, staged loader resolution and installed metadata
-        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replia-native" --phase audit
+        run: python3 tools/qualify_c.py --work "$RUNNER_TEMP/replai-native" --phase audit
       - name: Check repository stayed unchanged
         run: |
           git diff --check

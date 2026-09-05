@@ -2,11 +2,11 @@
 
 ## R1 reconciliation and boundary refinement
 
-At R1 entry, REPLIA was clean on `master`, HEAD
+At R1 entry, REPLAI was clean on `master`, HEAD
 `cabffdf8c7c046857d3f4d8a4ad91f81c255824b`, tree
 `df4b7ec4e269d0387ce0c04e36a9b6d00ca983d1`. Its parent remains the independent
 R0 root `39bc1c7b2f630a9fd93180e73c6008244f402ed0`. The remote is the owner's
-personal public repository, `mothx9/replia`.
+personal public repository, `mothx9/replai`.
 
 The planned YVEX HEAD/tree were `cb336ad60c12d6fa841dc0715bba9d44aa721846` /
 `528dcb1d9044d06807be2b67eb51fbd84fc0adf8`. The observed `models1` HEAD/tree
@@ -19,7 +19,7 @@ hash manifest also covers Makefile and the operator/source-owner registries.
 
 The R0 tables below remain historical evidence. R1 strengthens their generic
 presentation candidate: palette, prompt grammar, spacing, continuation, line
-surface and output coordination belong to REPLIA. Product labels, runtime facts,
+surface and output coordination belong to REPLAI. Product labels, runtime facts,
 commands and semantic rendering remain with the host. The [presentation record](presentation.md)
 contains the pinned source-derived byte captures and actual PTY comparisons.
 
@@ -40,13 +40,13 @@ contains the pinned source-derived byte captures and actual PTY comparisons.
 YAI remains consumer archaeology only: the R0 linenoise/FFI seam and I01 ownership
 below are unchanged requirements. No YAI source was changed, no editor was added
 there, and no I01/I02 or cognitive interlock work was reopened. Neither product
-is a dependency or linked into any REPLIA test. R1 performs no consumer cutover.
+is a dependency or linked into any REPLAI test. R1 performs no consumer cutover.
 
 ## R0 source record (historical)
 
-Historical evidence for `REPLIA.RECONSTRUCTION.BASELINE.0`, inspected on
+Historical evidence for `REPLAI.RECONSTRUCTION.BASELINE.0`, inspected on
 2026-09-05. Donor names in this record identify provenance and consumer
-boundaries only. No source code or Git history was imported into REPLIA.
+boundaries only. No source code or Git history was imported into REPLAI.
 
 ## Baseline reconciliation
 
@@ -70,7 +70,7 @@ Git mutations or cleanup. Unchanged whole-worktree status is not claimed.
 YAI's commit is `feat: add Case-owned multipart conversation content`. No
 local YAI checkout was found under the user's home directory. R0 reads the
 actual repository through GitHub: branch/commit metadata and a source archive
-at that exact revision, extracted outside REPLIA. This does not create or
+at that exact revision, extracted outside REPLAI. This does not create or
 mutate a YAI worktree, branch, index or remote. YAI is consumer evidence only;
 its vendored terminal implementation is not a second implementation donor.
 
@@ -120,7 +120,7 @@ Mixed rows split ownership explicitly. “Intended” means an interaction worth
 preserving, not a claim of complete existing implementation. Deficiencies
 below are source-derived unless a test assertion is identified.
 
-| Behavior | Source evidence | Current owner | Class | Candidate REPLIA ownership | R1 test requirement | Notes / intended contract / deficiency |
+| Behavior | Source evidence | Current owner | Class | Candidate REPLAI ownership | R1 test requirement | Notes / intended contract / deficiency |
 | --- | --- | --- | --- | --- | --- | --- |
 | TTY detection | C:1719–1723; P non-TTY scenario | Client chat dispatch | A + C | Capability check before acquisition | Pipes, redirected output, failed acquisition produce no escape output | Refusal text and exit code 2 are host policy |
 | termios lifecycle; raw/cooked restoration | C:1093–1105, 1222–1235 | Client editor | A + D | Capture, scoped change and exact restore | Compare PTY termios before/after submit, EOF, interrupt, read/write failure and partial open | Intended restoration; not full raw mode (`ISIG` remains); restore/write return values ignored |
@@ -198,7 +198,7 @@ initial bytes while unrelated work continued.
 
 I01 stays closed. Case ownership, draft ownership, SEND, ConversationTurn,
 ContentObject, multipart content, provenance, storage and provider causality
-never migrate into REPLIA. No cognitive/model interlock or I02 work is included.
+never migrate into REPLAI. No cognitive/model interlock or I02 work is included.
 
 [C]: https://github.com/yailabs/yvex/blob/cb336ad60c12d6fa841dc0715bba9d44aa721846/src/cli/io/client.c
 [O]: https://github.com/yailabs/yvex/blob/cb336ad60c12d6fa841dc0715bba9d44aa721846/config/source_owners.tsv

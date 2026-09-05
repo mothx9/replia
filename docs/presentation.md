@@ -6,7 +6,7 @@ reference is the linear YVEX console at
 The expected R0 donor was `cb336ad60c12d6fa841dc0715bba9d44aa721846`.
 The intervening commits changed source/runtime work, with no changes to the
 inspected console editor, palette, stream renderer, completion adapter or PTY
-script. No donor source was modified or linked into REPLIA.
+script. No donor source was modified or linked into REPLAI.
 
 ## Record derivation
 
@@ -42,7 +42,7 @@ not a changed terminal style. The probe used this prompt expression:
 
 Paste and interrupt records combine the actual redraw helper with the literal
 control emission at `client.c:1116` and `client.c:1137`; they do not claim a full
-live donor input replay. REPLIA's paste test sends CRLF, which intentionally
+live donor input replay. REPLAI's paste test sends CRLF, which intentionally
 normalizes to the single logical newline represented here. Donor CRLF doubling
 is a deficiency, not parity authority.
 
@@ -55,7 +55,7 @@ Pinned source evidence:
 ## Executable oracle
 
 `cargo test --test pty` launches separate processes with isolated environment
-values and actual PTYs. It types the representative input through REPLIA's public
+values and actual PTYs. It types the representative input through REPLAI's public
 API, changes real PTY dimensions for resize, and compares terminal **cell text,
 foreground, weight, default background and cursor** against these byte records
 using the independent `vt100` parser. Initial styled/plain prompts also require

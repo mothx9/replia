@@ -10,7 +10,7 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--work', type=Path)
 p.add_argument('--allow-dirty', action='store_true', help='development only; does not pass the clean closure gate')
 a = p.parse_args()
-work = a.work or Path(tempfile.mkdtemp(prefix='replia-r2-'))
+work = a.work or Path(tempfile.mkdtemp(prefix='replai-r2-'))
 work.mkdir(parents=True, exist_ok=True)
 commands = [
     ['cargo', 'fmt', '--check'],

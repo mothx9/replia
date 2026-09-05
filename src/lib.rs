@@ -5,19 +5,19 @@
 //! Hosts retain input meaning, completion discovery and history admission.
 //!
 //! ```
-//! use replia::Editor;
+//! use replai::Editor;
 //! let mut draft = Editor::new(1024, 20);
 //! draft.insert("café 界")?;
 //! draft.left();
 //! draft.delete();
 //! assert_eq!(draft.text(), "café ");
-//! # Ok::<(), replia::EditError>(())
+//! # Ok::<(), replai::EditError>(())
 //! ```
 //!
 //! A host owns the loop, including what to do after submission or interruption:
 //!
 //! ```no_run
-//! use replia::{Editor, Event, Prompt, Interaction};
+//! use replai::{Editor, Event, Prompt, Interaction};
 //! use std::time::Duration;
 //! let mut terminal = Interaction::new(Editor::new(65_536, 100));
 //! terminal.open(

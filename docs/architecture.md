@@ -1,6 +1,6 @@
 # Architecture and implementation boundary
 
-Status: `REPLIA.INTERACTION.API.ABI.0` (R2). This is an independent, early
+Status: `REPLAI.INTERACTION.API.ABI.0` (R2). This is an independent, early
 terminal interaction library with a working Linux editor. The public Rust
 surface is experimental. A separate C binding exposes pre-release ABI 1 through
 this public Rust surface. No consumer adapter or application framework exists.
@@ -199,10 +199,10 @@ forbidden. Exact versions and evidence are in [baseline](baseline.md).
 R2 adds only `libc` to the binding package for validating ordinary integer FDs
 with F_GETFD before constructing a borrowed descriptor. std has no fallible
 raw-FD validation operation. Its MIT-compatible license is recorded in the lock
-graph; no libc type crosses either public boundary. `replia-c` depends on the
-public `replia` crate and owns pointer validation, panic containment and ABI
+graph; no libc type crosses either public boundary. `replai-c` depends on the
+public `replai` crate and owns pointer validation, panic containment and ABI
 translation; it cannot access private editor, decoder or frame state. Its
-unsafe operations are restricted to the C boundary; `replia` retains
+unsafe operations are restricted to the C boundary; `replai` retains
 `unsafe_code = "forbid"`. See [C API](c-api.md) for mechanical ownership,
 installation, threading, numeric contracts and executable qualification.
 

@@ -1,10 +1,10 @@
 [package]
-name = "replia-c"
+name = "replai-c"
 version = "0.1.0-dev.0"
 edition = "2024"
 license = "MIT"
-description = "Versioned C binding for the REPLIA terminal interaction library"
-repository = "https://github.com/mothx9/replia"
+description = "Versioned C binding for the REPLAI terminal interaction library"
+repository = "https://github.com/mothx9/replai"
 publish = false
 build = false
 
@@ -12,7 +12,7 @@ build = false
 crate-type = ["rlib", "staticlib", "cdylib"]
 
 [dependencies]
-replia = { path = "../.." }
+replai = { path = "../.." }
 libc = "0.2.189"
 
 [lints.rust]

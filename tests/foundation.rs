@@ -22,7 +22,7 @@ fn dependency_graph_has_one_local_root_and_registry_only_dependencies() {
     let graph = cargo_output(&[
         "tree",
         "--package",
-        "replia",
+        "replai",
         "--locked",
         "--offline",
         "--all-features",

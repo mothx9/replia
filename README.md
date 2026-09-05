@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/replia-logo.png" alt="REPLIA logo" width="320">
+  <img src="assets/replai-logo.png" alt="REPLAI logo" width="320">
 </p>
 
-# REPLIA
+# REPLAI
 
-REPLIA is an embeddable terminal interaction library for building robust
+REPLAI is an embeddable terminal interaction library for building robust
 line-oriented and REPL-style command interfaces.
 
 **Early / pre-release:** a working Rust editor and Linux TTY backend are now
@@ -20,7 +20,7 @@ terminal's default background. `NO_COLOR` and `TERM=dumb` disable text styling.
 
 Hosts own the application loop, prompt content, command language, history
 admission, completion candidates and the meaning of input and interrupts.
-REPLIA is suitable for experimenting with interpreters, database and debugger
+REPLAI is suitable for experimenting with interpreters, database and debugger
 shells, developer tools and ordinary interactive command interfaces. It does
 not supply application commands, a scheduler or a dashboard.
 
@@ -58,11 +58,11 @@ Build static/shared artifacts and stage the self-contained header and pkg-config
 metadata into an empty prefix:
 
 ```sh
-cargo build --locked --release -p replia-c
-python3 tools/stage_c.py --prefix /tmp/replia-install
+cargo build --locked --release -p replai-c
+python3 tools/stage_c.py --prefix /tmp/replai-install
 ```
 
-The [generic C demo](examples/c/demo.c) uses only the installed `replia.h` and
+The [generic C demo](examples/c/demo.c) uses only the installed `replai.h` and
 library. See [C API and installation](docs/c-api.md) for compiler commands,
 ABI 1 ownership, events, failure rules and the complete qualification path.
 
