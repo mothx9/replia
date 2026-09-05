@@ -82,6 +82,8 @@ class Qualification:
         self.consumer.mkdir(parents=True)
         (self.root / 'tmp').mkdir()
         self.run(['python3', 'tools/generate_abi.py', '--check'], 'header-drift', isolated=False)
+        # Metadata audits the complete locked graph, including target-specific crates.
+        self.run(['cargo', 'fetch', '--locked'], 'fetch-locked-graph', isolated=False)
         self.run(['cargo', 'build', '--locked', '--release', '-p', 'replia-c'], 'release-binding', isolated=False)
         self.run(['cargo', 'build', '--locked', '--release', '-p', 'replia', '--example', 'terminal-state'], 'vt-oracle', isolated=False)
         self.run(['cargo', 'build', '--locked', '--release', '-p', 'replia-c', '--example', 'layout'], 'rust-layout-build', isolated=False)
