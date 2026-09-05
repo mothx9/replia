@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/replia-logo.png" alt="REPLIA logo" width="320">
+</p>
+
 # REPLIA
 
 REPLIA is an embeddable terminal interaction library for building robust
