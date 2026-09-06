@@ -24,6 +24,28 @@ REPLAI is suitable for experimenting with interpreters, database and debugger
 shells, developer tools and ordinary interactive command interfaces. It does
 not supply application commands, a scheduler or a dashboard.
 
+## Where REPLAI fits in a REPL
+
+A **Read–Eval–Print Loop** repeatedly reads an expression, evaluates it in an
+environment, and displays its result. The classic teaching reference is
+[SICP §4.1.4](https://sicp.sourceacademy.org/chapters/4.1.4.html).
+REPLAI supplies the terminal interaction part; the host supplies the language,
+evaluation, result formatting and loop policy.
+
+```mermaid
+flowchart LR
+    edit["REPLAI<br/>Prompt and edit UTF-8"] --> read["Host<br/>Read / parse"]
+    read --> evaluate["Host<br/>Evaluate / execute"]
+    evaluate --> print["Host<br/>Format and print"]
+    print -->|Next interaction| edit
+```
+
+Editing text and reading a language expression are different operations. This
+library/application separation also appears in
+[GNU Readline's programming interface](https://web.mit.edu/gnu/doc/html/rlman_2.html).
+See [the classical REPL and our design](docs/repl.md) for the complete teaching
+diagram, a worked example, and references including McCarthy's 1960 paper.
+
 ## Try the reference fixture
 
 On Linux, in an interactive ANSI/VT-compatible terminal:

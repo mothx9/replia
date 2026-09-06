@@ -5,7 +5,32 @@ terminal interaction library with a working Linux editor. The public Rust
 surface is experimental. A separate C binding exposes pre-release ABI 1 through
 this public Rust surface. No consumer adapter or application framework exists.
 
+For the classical Read–Eval–Print Loop, the distinction between editing and
+parsing, and the host interaction sequence, start with [the REPL guide](repl.md).
+
 ## Ownership and structure
+
+```mermaid
+flowchart TB
+    rust["Native Rust host<br/>Application loop and semantics"] --> interaction
+    c["C host<br/>Application loop and semantics"] --> binding["replai-c<br/>ABI 1 adapter"]
+    binding -->|Public Rust API| interaction
+    subgraph library["replai — safe Rust implementation"]
+        interaction["Interaction<br/>Lifecycle and typed events"]
+        decoder["input<br/>Bounded byte decoder"]
+        editor["core / Editor<br/>Draft, grapheme cursor, history"]
+        display["presentation<br/>Prompt, theme and cell layout"]
+        interaction --> decoder
+        interaction --> editor
+        interaction --> display
+    end
+    interaction <-->|Scoped terminal I/O| tty["Linux TTY<br/>Bytes, dimensions and termios"]
+```
+
+Arrows show calls and ownership boundaries, not threads or a scheduler.
+The public API delegates to private modules; neither host accesses their
+internal decoder or layout state. Read/parse, evaluation and semantic result
+formatting remain above both public boundaries.
 
 | Implemented library mechanism | Host responsibility |
 | --- | --- |
