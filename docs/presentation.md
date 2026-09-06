@@ -1,12 +1,55 @@
-# Initial reference presentation: compatibility evidence
+# Presentation contract and reference evidence
 
-This is an engineering archaeology record, not product vocabulary. R1's visual
-reference is the linear YVEX console at
+This document owns the terminal surface and its executable reference evidence.
+The historical visual reference is the linear YVEX console at
 `3a6520945a5c103365178f48104f0ccdb5154624` (branch `models1`, observed 2026-09-05).
 The expected R0 donor was `cb336ad60c12d6fa841dc0715bba9d44aa721846`.
 The intervening commits changed source/runtime work, with no changes to the
 inspected console editor, palette, stream renderer, completion adapter or PTY
 script. No donor source was modified or linked into REPLAI.
+
+## Prompt, cells and redraw
+
+Layout uses `unicode-width`'s normal (ambiguous-narrow) cell policy per grapheme.
+ANSI style sequences are not text and contribute no cells. Draft TAB expands
+to four-column stops. CJK wide characters, accented text, combining clusters,
+ordinary emoji and joined emoji are covered by core/layout tests. The independent
+VT oracle covers the subset it can model; a font or emulator may render a joined
+emoji or ambiguous character differently. Full Unicode terminal equivalence,
+bidi layout and all terminal width tables are not claimed.
+
+Prompt fields are plain control-free text, at most 1024 bytes each. The label
+and optional literal suffix compose as `<Accent>label+suffix><Default> `;
+continuations default to `... `. No raw ANSI prompt injection is accepted.
+Style roles are Default, Strong, Accent, Dim, Success, Warning and Error. All
+SGR values have one authority in [`Theme`](../src/presentation.rs). No background color or alternate
+screen is set. Non-TTY output, `NO_COLOR` present (including empty), or
+`TERM=dumb` disables styling. Disabling color emits no SGR, including no reset
+residue, while preserving text. `TERM=dumb` follows the reference's color rule; it is **not** a
+promise to operate on a terminal that lacks the cursor/erase protocol entirely.
+
+Physical rows are explicitly laid out with CR/LF; full-width boundaries and
+wide-character gaps are handled without counting scalars as columns. A logical
+newline immediately after a full row does not introduce an extra blank row.
+The previous editing rows are erased before redrawing, then the logical cursor
+is restored. Normal short end insertion appends directly, preserving the compact
+reference rhythm. Ctrl-L explicitly clears the visible screen and redraws.
+For drafts taller than the terminal, a cursor-following viewport retains at most
+height minus one physical rows; hidden text is retained and still submitted.
+Minimum dimensions are two columns and two rows. Resize qualification covers
+PTY dimension changes and the VT cell model, not every emulator's scrollback
+reflow policy; the [executable oracle](#executable-oracle) states the evidence.
+
+## External output
+
+`external_output(role, text)` is a synchronous display transaction: disable paste
+framing, clear the editing rows, write validated host text using a generic role,
+finish its line, enable paste and redraw draft/cursor. LF/CRLF are normalized;
+other controls except TAB reject before any terminal mutation. There is no raw
+ANSI passthrough. Input stays raw and queued bytes are retained. The host controls
+when output is written; independent concurrent writes must be serialized through
+this method. Partial fragments can be sent as separate lines; continuous
+no-newline streaming batches and an unrestricted writer guard are not supported APIs.
 
 ## Record derivation
 
@@ -91,7 +134,7 @@ its corrected structural cases. It is not pixel/font equivalence, a full product
 runtime transcript comparison or certification of every emulator's emoji widths,
 ambiguous-width settings, saved scrollback reflow or terminal multiplexers.
 
-## R2: the same renderer through C
+## The same renderer through C
 
 The observed read-only donor at R2 start was
 `5b95ee82eee394581521d106c7b1ec479d472448`, branch `models2`, tree

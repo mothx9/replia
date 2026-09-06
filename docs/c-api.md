@@ -177,8 +177,19 @@ privacy, deduplication and admission. Up/Down use the same Rust history mechanis
 including restoring the pre-history draft and cursor. History zero is allowed.
 
 `replai_external_output(role, bytes, length)` delegates to the single Rust
-renderer. Roles are DEFAULT=0, STRONG=1, ACCENT=2, DIM=3, SUCCESS=4, WARNING=5,
-ERROR=6. The transaction validates text, suspends the visible editing surface,
+renderer. Style tags are:
+
+| Role | Value |
+| --- | ---: |
+| DEFAULT | 0 |
+| STRONG | 1 |
+| ACCENT | 2 |
+| DIM | 3 |
+| SUCCESS | 4 |
+| WARNING | 5 |
+| ERROR | 6 |
+
+The transaction validates text, suspends the visible editing surface,
 writes a complete host text line, then redraws exact draft/cursor. It is a
 synchronous line transaction, not an arbitrary ANSI writer or no-newline stream.
 The terminal background remains default; no alternate screen is introduced.
@@ -215,7 +226,8 @@ Only its `src/lib.rs` dereferences C pointers, constructs borrowed FDs or manage
 the opaque allocation. The implementation crate still forbids unsafe code.
 
 Run the complete qualification with current stable Rust, cc/c++, pkg-config,
-Python 3, Valgrind and a Linux kernel with Landlock:
+Python 3, Valgrind and a Linux kernel with Landlock. Install the documentation
+checker prerequisites from [development](development.md#tools) as well:
 
 ```sh
 python3 tools/qualify.py
@@ -234,5 +246,6 @@ only staged artifacts, copied C files and system toolchain/runtime are available
 The terminal backend is Linux-qualified. C11 and C++17 inclusion are tested;
 that does not establish another OS backend or every compiler/architecture ABI.
 Unicode width, terminal reflow, TERM=dumb, unframed paste and external-output
-limitations remain those in [architecture](architecture.md). No consumer
-integration or release is performed by this qualification.
+limitations remain those in [interaction](interaction.md) and
+[presentation](presentation.md). No consumer integration or release is performed
+by this qualification.

@@ -1,8 +1,8 @@
 # The classical REPL and REPLAI
 
-This is the teaching entry point. [Architecture](architecture.md) owns the
-implemented contracts; [presentation](presentation.md) and [C qualification](c-api.md)
-own executable evidence. The diagrams explain responsibilities, not additional
+This is the teaching entry point. [Architecture](architecture.md) owns structure;
+[interaction](interaction.md) owns common behavior. [Presentation](presentation.md)
+and [C qualification](c-api.md) own executable evidence. The diagrams explain responsibilities, not additional
 features or a claim of standards conformance.
 
 ## Read, evaluate, print, repeat

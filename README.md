@@ -63,55 +63,37 @@ echo: hello
 demo>
 ```
 
-Tab completes a unique match from `hello`, `help`, `world`. Up/Down recall
-host-admitted input; Home/End and Ctrl-A/Ctrl-E move across the whole draft.
-Ctrl-C returns an interrupt; this fixture clears its draft and starts again.
-Ctrl-D exits with an empty draft, otherwise deletes the next grapheme. Pasted
-newlines remain one input until Enter. Ctrl-L explicitly clears and redraws.
-
-The host API is illustrated in [the fixture](examples/demo.rs) and crate docs
-(`cargo doc --no-deps`). Applications own an `Interaction` containing their `Editor`, explicitly open
-and close its terminal resource, poll typed `Event`s and call `complete` or
-`external_output`. They decide what happens after the terminal is restored.
+The [Rust example](examples/demo.rs) shows the host loop, completion and history
+admission. Generate method documentation with `cargo doc --no-deps`; see the
+[interaction contract](docs/interaction.md) for keys, lifecycle and failure rules.
 
 ## C consumers
 
-Build static/shared artifacts and stage the self-contained header and pkg-config
-metadata into an empty prefix:
+Build and stage the header, static/shared libraries and pkg-config metadata:
 
 ```sh
 cargo build --locked --release -p replai-c
 python3 tools/stage_c.py --prefix /tmp/replai-install
 ```
 
-The [generic C demo](examples/c/demo.c) uses only the installed `replai.h` and
-library. See [C API and installation](docs/c-api.md) for compiler commands,
-ABI 1 ownership, events, failure rules and the complete qualification path.
+Use an absent or empty prefix. The [C example](examples/c/demo.c) consumes only
+installed artifacts. [C API and installation](docs/c-api.md) provides the exact
+link commands, ABI ownership and error rules.
 
-## Development and qualification
+## Documentation and development
 
-Use current stable Rust with `rustfmt` and `clippy`:
+Start at the [documentation map](docs/README.md). It routes teaching, architecture,
+interaction, presentation and C integration to their owning documents.
+[Contributing](CONTRIBUTING.md) explains change admission;
+[development](docs/development.md) gives the authoritative checks.
+[Project status](ROADMAP.md) records demonstrated scope, limits and next work;
+[the changelog](CHANGELOG.md) records externally meaningful changes.
 
-```sh
-cargo fmt --check
-cargo check --workspace --all-targets
-cargo test --workspace --all-targets
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --doc
-cargo test --workspace --release
-git diff --check
-```
-
-Tests include deterministic editing/protocol cases and real Linux PTYs with a
-VT terminal-state oracle. `python3 tools/qualify.py` additionally qualifies
-installed static/shared C consumers, ABI layout and memory ownership with
-Valgrind and Linux Landlock isolation. No sibling repository or application runtime is
-needed. Other operating systems, every terminal's Unicode/font/reflow behavior,
-a minimum Rust version and production maturity have not been qualified.
-
-See [architecture](docs/architecture.md) for ownership, Unicode and lifecycle
-contracts, [presentation evidence](docs/presentation.md) for the reference
-comparison, and [contributing](CONTRIBUTING.md) for development policy.
+Qualification covers deterministic Rust contracts, real Linux PTYs and isolated
+installed C consumers, including ABI layout and memory ownership. See
+[presentation evidence](docs/presentation.md) for exact byte/cell/cursor oracles.
+Other OS backends, every terminal's Unicode/reflow behavior, an MSRV and
+production maturity are not qualified.
 
 ## License
 
