@@ -9,6 +9,30 @@ permissions:
   contents: read
 
 jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: Install locked documentation parsers
+        run: npm ci --prefix tools/docs --ignore-scripts
+      - name: Links, ownership, ABI prose and Mermaid syntax
+        run: python3 tools/check_docs.py
+      - name: Adversarial documentation fixtures
+        run: python3 -B tools/test_check_docs.py
+      - name: Generated ABI declarations stay authoritative
+        run: python3 tools/generate_abi.py --check
+      - name: Check repository stayed unchanged
+        run: |
+          git diff --check
+          test -z "$(git status --porcelain)"
+
   rust:
     runs-on: ubuntu-latest
     env:

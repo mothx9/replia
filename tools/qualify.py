@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Complete R2 qualification, including the clean-worktree closure gate."""
+"""Complete repository qualification, including the clean-worktree closure gate."""
 import argparse
 from pathlib import Path
 import subprocess
@@ -13,6 +13,8 @@ a = p.parse_args()
 work = a.work or Path(tempfile.mkdtemp(prefix='replai-r2-'))
 work.mkdir(parents=True, exist_ok=True)
 commands = [
+    ['python3', 'tools/check_docs.py'],
+    ['python3', '-B', 'tools/test_check_docs.py'],
     ['cargo', 'fmt', '--check'],
     ['cargo', 'check', '--workspace', '--all-targets'],
     ['cargo', 'test', '--workspace', '--all-targets'],

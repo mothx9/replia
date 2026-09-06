@@ -2,3 +2,6 @@
 
 # Python qualification tools
 __pycache__/
+
+# Documentation-only parser dependencies
+/tools/docs/node_modules/
